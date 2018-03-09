@@ -1,0 +1,116 @@
+\newif\ifsubmit
+\submitfalse
+
+\documentclass[acmsmall,review,anonymous]{acmart}%
+\settopmatter{printfolios=true,printccs=false,printacmref=false}
+
+% Encoding and lang
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[english]{babel}
+
+% Graphical packages
+\usepackage{graphicx}
+
+% Math
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{amsthm}
+% \usepackage{mathrsfs}
+\usepackage{mathtools}
+% \usepackage{textcomp}
+% \usepackage{textgreek}
+
+% Good citations and bibliography
+\usepackage{natbib}
+
+% % Pictures and latex lists
+% \usepackage{wrapfig}
+% \usepackage{float}
+\usepackage{caption}
+\usepackage{subcaption}
+% \usepackage{placeins}
+% \usepackage{array}
+% \usepackage{paralist}
+\usepackage{enumitem}% Compact lists
+\usepackage{pifont}
+
+% Specialized packages
+% \usepackage{syntax} % Grammar definitions
+\usepackage{verbatim}
+\usepackage{listings} % Code
+\usepackage{xspace} % Useful for macros
+\usepackage{mathpartir}
+
+\usepackage{textcomp}
+
+\usepackage[noabbrev,nameinlink,capitalize]{cleveref}
+
+% Custom macros
+\input{prelude}
+
+% Declare a new environment for floating examples. Used like figure.
+\usepackage{newfloat}
+\DeclareFloatingEnvironment[
+listname={List of Examples},
+name={Example},
+placement={!ht},
+]{ex}
+\crefname{ex}{Example}{Examples}
+\Crefname{ex}{Example}{Examples}
+\crefname{subex}{Example}{Examples}
+\Crefname{subex}{Example}{Examples}
+
+% Bibliography
+\bibliographystyle{ACM-Reference-Format}
+\citestyle{acmauthoryear}
+
+%% Journal information
+%% Supplied to authors by publisher for camera-ready submission;
+%% use defaults for review submission.
+\acmJournal{PACMPL}
+\acmVolume{1}
+\acmNumber{ICFP} % CONF = POPL or ICFP or OOPSLA
+\acmArticle{1}
+\acmYear{2018}
+\acmMonth{1}
+\acmDOI{} % \acmDOI{10.1145/nnnnnnn.nnnnnnn}
+\startPage{1}
+
+
+\begin{document}
+
+\title{Regenerate}
+
+\author{Gabriel Radanne}
+\affiliation{
+  \institution{University of Freiburg}
+  \country{Germany}
+}
+\email{radanne@informatik.uni-freiburg.de}
+
+
+\begin{abstract}
+  \TODO{}
+\end{abstract}
+\keywords{\TODO{}}
+
+\maketitle
+\input{intro}
+
+%% Acknowledgments
+% \begin{acks}
+% \end{acks}
+
+\clearpage
+\bibliography{biblio}
+
+% \appendix
+% \normalsize
+
+\end{document}
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: t
+%%% End:
