@@ -35,6 +35,19 @@
   emphstyle={[2]\color{blue!60!black}\bfseries},
 }
 
+%%% regular expressions
+\newcommand\Rnull{\mathbf0}
+\newcommand\Rempty{\mathbf1}
+\newcommand\Runion[1]{#1 +}
+\newcommand\Rconcat[1]{#1 \cdot}
+\newcommand\Rstar[1]{#1^*}
+\newcommand\Rintersect[1]{#1 \with}
+\newcommand\Rcomplement{\texttildelow}
+
+%%% misc
+\newcommand\ltext[1]{\makebox[0pt][r]{\text{#1}\quad}}
+\newcommand\lleq{\le_{ll}}
+
 %%% Local Variables:
 %%% mode: latex
 %%% TeX-master: "main"

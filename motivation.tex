@@ -50,25 +50,162 @@ in the language and in the language's complement.
 
 \begin{figure}[tp]
   \begin{align*}
-    r, s &::= 
+    r, s & &L(\_)=\quad &  &
+                             \makebox[1em][l]{\texttt{data GRE sig}}\\
+         & ::= \Rnull & \ltext{empty}
+                        & \emptyset
+                           &&\texttt{= Zero}\\
+         & \mid \Rempty & \ltext{empty word}
+                        & \{ \varepsilon \}
+                           && \texttt{| One}\\
+         & \mid (a \in \Sigma) & \ltext{singleton}
+                        &  \{ a \}
+                           && \texttt{| Atom sig} \\
+         & \mid \Runion rs & \ltext{alternative}
+                        &  L (r) \cup L (s)
+                           && \texttt{| Or (GRE sig) (GRE sig)}\\
+         & \mid \Rconcat rs & \ltext{concatenation}
+                        &  L (r) \cdot L (s)
+                           && \texttt{| Dot (GRE sig) (GRE sig)}\\
+         & \mid \Rstar r & \ltext{Kleene star}
+                        & (L (r))^* 
+                           && \texttt{| Star (GRE sig)}\\
+         & \mid \Rintersect rs & \ltext{intersection}
+                        & L (r) \cap L (s)
+                           && \texttt{| And (GRE sig) (GRE sig)}\\
+         & \mid \Rcomplement r & \ltext{complement}
+                        & \Sigma^* \setminus L (r)
+                           && \texttt{| Not (GRE sig)}
   \end{align*}
+  % \begin{align*}
+  %   L (\Rnull) &= \emptyset\\
+  %   L (\Rempty) &= \{ \varepsilon \} \\
+  %   L (a) &= \{ a \} \\
+  %   L (\Runion rs) &= L (r) \cup L (s) \\
+  %   L (\Rconcat rs) &= L (r) \cdot L (s) \\
+  %   L (\Rstar r) &= (L (r))^* \\
+  %   L (\Rintersect rs) &= L (r) \cap L (s) \\
+  %   L (\Rcomplement r) &= \Sigma^* \setminus L (r)
+  % \end{align*}
   \caption{Generalized regular expressions}
   \label{fig:generalized-regular-expressions}
 \end{figure}
 
 We will look at a slightly more general question, which subsumes the
-needs stated in the preceding paragraph. A \emph{generalized regular
-  expression} (Figure~\ref{fig:generalized-regular-expressions}) is an
-expression built from the regular operators empty set, empty word,
-singleton word, alternative, concatenation, and Kleene star. In
-addtion, it may contain the operators intersection and complement.
+purpose of generating positive and negative sample words for
+testing. A \emph{generalized regular expression}
+(Figure~\ref{fig:generalized-regular-expressions}) is an expression
+built from the regular operators empty set, empty word, singleton word
+consisting of a single letter $a$ chosen from a finite alphabet
+$\Sigma$, alternative, concatenation, and Kleene star. In addition, it
+may contain the operators intersection and complement.
 
+The semantics of an expression, $L(r) \subseteq \Sigma^*$, is a set of
+words, which is also defined in
+Figure~\ref{fig:generalized-regular-expressions}. It relies on
+standard definitions from the theory of formal languages. We write
+$\varepsilon$ for the empty word and $u\cdot v$ for the concatenation
+of words $u, v \in \Sigma^*$. If $U, V \subseteq \Sigma^*$ are
+languages, then their concatenation (or product) is defined as $U\cdot
+V = \{ u\cdot v \mid u\in U, v\in V\}$. The Kleene closure of a
+language $U\subseteq \Sigma^*$ is defined as $U^* =
+\bigcup_{i=0}^\infty U^i$ where $U^0 = \{\varepsilon\}$ and $U^{i+i} =
+U \cdot U^i$. 
 
 \subsection{Naive Approach}
 \label{sec:naive-approach}
 
+We start with a naive implementation of the mathematical definition in
+Figure~\ref{fig:generalized-regular-expressions}. We define an
+alphabet by a list of \texttt{Char}.  We represent words by Haskell's
+\texttt{Data.Text.Text} datatype, abbreviated to \texttt{T.Text}. We
+represent a language as a lazy list of \texttt{Text}, as a language
+can be an infinite set. There are two further restrictions.
+\begin{enumerate}
+\item The output of a generator should not contain repetitions
+  because we would like to guarantee that test inputs are different
+  from each others.
+\item The output of a generator should not be partial because it would
+  lead the test code to hang on a nonterminating input.
+\end{enumerate}
+\begin{verbatim}
+type Sigma = Char
+type Lang = T.Text
 
+generate :: Sigma -> GRE Char -> Lang
+generate sigma r = gen r
+  where
+    gen Zero = []
+    gen One  = [T.empty]
+    gen (Atom t) = [T.singleton t]
+    gen (Or r s) = union (gen r) (gen s)
+    gen (Dot r s) = concatenate (gen r) (gen s)
+    gen (Star r) = star (gen r)
+    gen (And r s) = intersect (gen r) (gen s)
+    gen (Not r) = complement sigma (gen r)
 
+union, concatenate, intersect :: Lang -> Lang -> Lang
+star :: Lang -> Lang
+complement :: Sigma -> Lang -> Lang
+\end{verbatim}
+Now we consider the operators in turn.
+
+\subsubsection{Union}
+Ideally, the \texttt{union} operator it should behave like
+set union:
+\begin{verbatim}
+w `elem` union xs ys   <==>   w `elem` xs || w `elem` ys
+\end{verbatim}
+Can we implement \texttt{union} simply by list append?
+No, we cannot. 
+If \texttt{xs} is an infinite list and \texttt{ys} is different from
+\texttt{xs}, then there is some \texttt{w `elem` ys} such that
+\texttt{w `elem` union xs ys} does not terminate.
+If \texttt{xs} is a finite list without duplicates, then simply
+appending \texttt{ys} may result in duplicates.
+Another alternative, \texttt{Data.List.union}, would apply only to finite lists.
+
+Can we implement \texttt{union} by interleaving? No, we cannot for
+similar reasons.
+
+Our approach is to generate a language as a potentially infinite list
+in ascending \emph{length-lexicographic order}. The
+length-lexicographic ordering is defined by $u \lleq 
+v$ if $|u|<|v|$ or $|u|=|v|$ and $u\le v$ in the usual lexicographic
+ordering. Here is a definition in Haskell.
+\begin{verbatim}
+lleq :: T.Text -> T.Text -> Bool
+lleq u v =
+  let lxs = T.length xs
+      lys = T.length ys
+  in  lxs < lys ||
+      lxs == lys && xs <= ys
+\end{verbatim}
+This ordering has the advantage that it gives raise to a standard
+enumeration of all words over a totally ordered alphabet. In
+particular, for each pair of words $u \lleq v$ there is only a finite
+number of words $w$ such that $u \lleq w$ and $w \lleq v$. This property does
+not hold for the lexicographic ordering where all elements of $a\cdot
+(a+b)^*$ lie between words $a$ and $b$ (assuming $\Sigma = \{a, b\}$
+with $a<b$).
+
+With the LLO representation, the \texttt{union} operation can be
+implemented by merging two lazy lists.
+\begin{verbatim}
+union :: Lang -> Lang -> Lang
+union [] ys = ys
+union xs [] = xs
+union xs@(x:xs') ys@(y:ys')
+  | x == y   = x : union xs' ys'
+  | lleq x y = x : union xs' ys
+  | otherwise  = y : union xs ys'
+\end{verbatim}
+Moreover, this operation runs in linear time. If the input languages
+are finite of size $m$ and $n$, respectively, then $O(m+n)$
+comparisons, pattern matches, and cons operations are needed.
+
+This implementation fulfills the specification to a much larger
+degree, but it still gets stuck on partial lists.
 
 %%% Local Variables:
 %%% mode: latex
