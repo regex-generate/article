@@ -1,0 +1,76 @@
+\section{Motivation}
+\label{sec:motivation}
+
+Let's say someone implemented a clever algorithm, say \texttt{match}, for
+regular expression matching. 
+We do not trust this implementation and would like to test it.
+Testing the implementation requires us to come up with test cases and
+implement a test oracle, say \texttt{matchOracle}.
+
+A test case consists of a regular expression \texttt{r} and an input
+string \texttt{s}. Running the test means to execute \texttt{match r
+  s} and check whether the result is correct by comparing with
+\texttt{matchOracle r s}. But how do we know whether
+\texttt{matchOracle} is correct, short of verifying it?
+
+A popular way of conducting this test is using QuickCheck
+\cite{quickcheck}, which performs property-based random testing. Using
+QuickCheck, we would write a generator for regular expressions and then
+use the generator for strings to generate many inputs for a
+generated regular expression.
+
+However, this approach has a
+catch. Depending on the language of the regular expression, the
+probability that a random string is a member of the language can be
+severly skewed. As an example, consider the language $L = (ab)^*$ over the
+alphabet $\Sigma = \{a, b\}$. Although $L$ contains infinitely many
+words, the probability that a random word of
+length $n$ is an element of $L$ is
+\begin{itemize}
+\item $0$ if $n$ is odd and
+\item $\frac{1}{2^n}$ if $n$ is even.
+\end{itemize}
+Thus, the probability $p_n$ that a random word of length less than or equal to
+$n$ is an element of $L$ is way smaller:
+\begin{align*}
+  p_n &= \frac{\lfloor n/2 \rfloor}{2^{n+1} - 1}
+        \le \frac{n}{2^{n+2} - 2}
+\end{align*}
+Hence, the probability of (uniformly) randomly
+selecting a word in $L$ is zero in the limit.
+
+Wouldn't it be nice to have a systematic and obviously correct means
+of generating words \textbf{inside} of $L$ and \textbf{outside} of
+$L$? Such a generation algorithm would obviate the need for an oracle
+and it would make sure that we can control the number of test inputs
+in the language and in the language's complement.
+
+\subsection{Research Question}
+\label{sec:research-question}
+
+\begin{figure}[tp]
+  \begin{align*}
+    r, s &::= 
+  \end{align*}
+  \caption{Generalized regular expressions}
+  \label{fig:generalized-regular-expressions}
+\end{figure}
+
+We will look at a slightly more general question, which subsumes the
+needs stated in the preceding paragraph. A \emph{generalized regular
+  expression} (Figure~\ref{fig:generalized-regular-expressions}) is an
+expression built from the regular operators empty set, empty word,
+singleton word, alternative, concatenation, and Kleene star. In
+addtion, it may contain the operators intersection and complement.
+
+
+\subsection{Naive Approach}
+\label{sec:naive-approach}
+
+
+
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: "main"
+%%% End:
