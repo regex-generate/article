@@ -5,12 +5,47 @@
 \newcommand\TODO[1]{{\ \\\color{red}\large\textbf{TODO} #1}\\}
 
 \newcommand\mysc[1]{{\textsc{#1}}\xspace}
+\newcommand\ocaml{\mysc{OCaml}}
+\newcommand\haskell{\mysc{Haskell}}
+
 \newcommand\htag[1]{\shortintertext{\textbf{#1}}}
 
 
+\newcommand\code[2][]{\mbox{\lstinline[#1,basicstyle=\ttfamily\normalsize]{#2}}}
 
-\newcommand\ocamlc[1]{\mbox{\lstinline[language={[Objective]Caml},basicstyle=\ttfamily\normalsize]{#1}}}
+% Colors!
+\definecolor{butter}{HTML}{C4A000}
+\definecolor{orange}{HTML}{CE5C00}
+\definecolor{chocolate}{HTML}{8F5902}
+\definecolor{chameleon}{HTML}{4E9A06}
+\definecolor{skyblue}{HTML}{204A87}
+\definecolor{plum}{HTML}{5C3566}
+\definecolor{scarletred}{HTML}{A40000}
+\definecolor{lightalu}{HTML}{BABDB6}
+\definecolor{darkalu}{HTML}{2E3436}
+\newcommand{\kwstyle}{}
 
+\lstdefinelanguage{Haskell}{
+  otherkeywords={|,=>,<=,<,>,::,=,@,||,\$},%
+  keywords=[1]{if,then,else,case,in,let,where,do},
+  keywords=[2]{class,data,newtype,of,deriving,type,sig},%
+  keywords=[3]{hiding,infix,infixl,infixr,import,instance,module,qualified},%
+  keywordstyle=\kwstyle,
+  keywordstyle=[1]\kwstyle\color{chameleon},
+  keywordstyle=[2]\kwstyle\color{scarletred},
+  keywordstyle=[3]\kwstyle\color{skyblue},
+  keywordstyle=[4]\kwstyle\color{butter},
+  keywordstyle=[5]\kwstyle\color{skyblue},
+  keywordstyle=[6]\kwstyle\color{skyblue},
+  keywordstyle=[7]\kwstyle\color{chameleon},
+  keywordstyle=[8]\kwstyle\color{butter},
+  keywordstyle=[9]\kwstyle\color{butter},
+  sensitive,%
+  comment=[l]{--},%
+  comment=[n]{\{-}{-\}},%
+  string=[b]",%
+  literate={->}{{{\kwstyle\color{chameleon}->}}}2
+}%
 
 %% Code listing
 \lstset{
@@ -33,7 +68,11 @@
   numbers=left,
   emphstyle=\color{green!60!black}\bfseries,
   emphstyle={[2]\color{blue!60!black}\bfseries},
+  language=Haskell
 }
+
+
+
 
 %%% regular expressions
 \newcommand\Rnull{\mathbf0}
