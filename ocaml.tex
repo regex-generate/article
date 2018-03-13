@@ -1,0 +1,96 @@
+\section{\ocaml implementation}
+\label{sec:ocaml}
+
+\lstset{language=[Objective]Caml}
+
+In addition to the \haskell implementation, we implemented our language generator
+in \ocaml. One of the goal of this implementation was to test
+pure \ocaml regular expression libraries such as \mysc{re}\footnote{\url{https://github.com/ocaml/ocaml-re}} and
+\mysc{mulet}\footnote{\url{https://github.com/let-def/mulet}}. 
+The other was to experiment with strictness and various data-structure for
+segments.
+
+Indeed, as long as all the words in each segment are of the same length,
+they can be stored in any data structure that support set operations.
+In order to test this, we implemented our algorithm as a functor as shown in \autoref{code:sigs}.
+Our functor takes as argument two data-structure: words and segments.
+
+\paragraph{Character and Words}
+
+The signature for words in shown in \autoref{code:sigs:word}.
+Surprisingly few operations are needed for words: Indeed, we mostly requires the ability to build the empty word (for \code{One}),
+words of one char (for \code{Atom}) and to append words
+with each others. Notably, we do not require an ordering on words, as we will
+see in more details in the description of \code{SEGMENT}.
+The \code{length} operation is only required in order to classify
+words in segments in the \code{import} function, but is not necessary for the
+main algorithm, since all segment operations return words of known lengths.
+
+In practice, such a signature is easily satisfied by the \ocaml \code{string}
+type (\ie arrays of bytes), arrays or lists of characters, or by ropes. The
+type of individual characters is completely unrestricted.
+
+\paragraph{Segments}
+
+
+
+\begin{figure}[h]
+  \centering
+  \begin{subfigure}{0.44\linewidth}
+\begin{lstlisting}
+module type SEGMENT = sig
+  type elt
+  type t
+  val empty : t
+  val is_empty : t -> bool
+  val return : elt -> t
+
+  (** Set operations *)
+  val append: t -> t -> t
+  val union : t -> t -> t
+  val inter : t -> t -> t
+  val diff : t -> t -> t
+  val merge : t OSeq.t -> t
+
+  val of_list : elt list -> t
+  val to_seq : t -> elt Sequence.t
+
+  val memoize : t -> t
+end
+\end{lstlisting}
+    \caption{Necessary operation on segments}
+    \label{code:sigs:segment}
+  \end{subfigure}~
+  \begin{subfigure}{0.57\linewidth}
+\begin{lstlisting}
+module type WORD = sig
+  type char
+  type t
+  val empty : t
+  val singleton : char -> t
+  val length : t -> int
+  val append : t -> t -> t
+end
+\end{lstlisting}
+    \caption{Signature for words}
+    \label{code:sigs:word}
+\begin{lstlisting}
+module Regenerate
+    (Word : WORD)
+    (Segment : Segments.S with type elt = Word.t)
+: sig
+  val gen : 
+    sigma:Segment.t -> C.t regex -> Word.t Sequence.t
+end
+\end{lstlisting}
+    \caption{Language generation as a functor}
+    \label{code:sigs:regen}
+  \end{subfigure}
+  \caption{Signatures of the language generator}
+  \label{code:sigs}
+\end{figure}
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: "main"
+%%% End:
