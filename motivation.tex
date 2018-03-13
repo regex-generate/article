@@ -178,7 +178,7 @@ generate sigma r = gen r
     gen (Not r) = complement sigma (gen r)
 \end{lstlisting}
 \begin{figure}[tp]
-\begin{verbatim}
+\begin{lstlisting}
 module Examples.Naive where
 
 union :: Lang -> Lang -> Lang
@@ -198,7 +198,7 @@ star lx = concat lxi
 complement :: Alphabet -> Lang -> Lang
 complement sigma lx =
   undefined
-\end{verbatim}
+\end{lstlisting}
   \caption{Partial implementation of the regular operators}
   \label{fig:regular-operators-0}
 \end{figure}
@@ -245,7 +245,7 @@ This implementation has a number of deficiencies.
   of the output.
 \end{description}
 \begin{figure}[tp]
-\begin{verbatim}
+\begin{lstlisting}
 module Examples.Finite where
 
 import Data.List as L
@@ -268,7 +268,7 @@ star lx = take limit $ removeDuplicates $ concat lxs
     lxs = [T.empty] : map (concatenate lx1) lxs
     lx1 = L.delete T.empty lx
     removeDuplicates [] = []
-    removeDuplicates (w:ws) = w : removeDuplicates (filter (!=w) ws)
+    removeDuplicates (w:ws) = w : removeDuplicates (filter (/=w) ws)
 
 complement :: Alphabet -> Lang -> Lang
 complement sigma lx = take limit (concat lsigmastar L.\\ lx) 
@@ -276,8 +276,8 @@ complement sigma lx = take limit (concat lsigmastar L.\\ lx)
     lsigmastar =
       [T.empty] : 
       map (\lsigmai -> concatMap (\la -> concatenate la lsigmai) lsigma1) lsigmastar
-    lsigma1 = map T.singleton sigma
-\end{verbatim}
+    lsigma1 = map (return . T.singleton) sigma
+\end{lstlisting}
   \caption{Finite implementation of the regular operators}
   \label{fig:finite-regular-operators}
 \end{figure}
