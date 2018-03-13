@@ -1,17 +1,17 @@
 \section{Motivation}
 \label{sec:motivation}
 
-Let's say someone implemented a clever algorithm, say \texttt{match}, for
+Let's say someone implemented a clever algorithm, say \code{match}, for
 regular expression matching. 
 We do not trust this implementation and would like to test it.
 Testing the implementation requires us to come up with test cases and
-implement a test oracle, say \texttt{matchOracle}.
+implement a test oracle, say \code{matchOracle}.
 
-A test case consists of a regular expression \texttt{r} and an input
-string \texttt{s}. Running the test means to execute \texttt{match r
+A test case consists of a regular expression \code{r} and an input
+string \code{s}. Running the test means to execute \code{match r
   s} and check whether the result is correct by comparing with
-\texttt{matchOracle r s}. But how do we know whether
-\texttt{matchOracle} is correct, short of verifying it?
+\code{matchOracle r s}. But how do we know whether
+\code{matchOracle} is correct, short of verifying it?
 
 A popular way of conducting this test is using QuickCheck
 \cite{quickcheck}, which performs property-based random testing. Using
@@ -22,7 +22,7 @@ generated regular expression.
 However, this approach has a
 catch. Depending on the language of the regular expression, the
 probability that a random string is a member of the language can be
-severly skewed. As an example, consider the language $L = (ab)^*$ over the
+severely skewed. As an example, consider the language $L = (ab)^*$ over the
 alphabet $\Sigma = \{a, b\}$. Although $L$ contains infinitely many
 words, the probability that a random word of
 length $n$ is an element of $L$ is
@@ -51,31 +51,31 @@ in the language and in the language's complement.
 \begin{figure}[tp]
   \begin{align*}
     r, s & &L(\_)=\quad &  &
-                             \makebox[1em][l]{\texttt{data GRE sig}}\\
+                             \makebox[1em][l]{\code{data GRE sig}}\\
          & ::= \Rnull & \ltext{empty}
                         & \emptyset
-                           &&\texttt{= Zero}\\
+                           &&\code{= Zero}\\
          & \mid \Rempty & \ltext{empty word}
                         & \{ \varepsilon \}
-                           && \texttt{| One}\\
+                           && \code{| One}\\
          & \mid (a \in \Sigma) & \ltext{singleton}
                         &  \{ a \}
-                           && \texttt{| Atom sig} \\
+                           && \code{| Atom sig} \\
          & \mid \Runion rs & \ltext{alternative}
                         &  L (r) \cup L (s)
-                           && \texttt{| Or (GRE sig) (GRE sig)}\\
+                           && \code{| Or (GRE sig) (GRE sig)}\\
          & \mid \Rconcat rs & \ltext{concatenation}
                         &  L (r) \cdot L (s)
-                           && \texttt{| Dot (GRE sig) (GRE sig)}\\
+                           && \code{| Dot (GRE sig) (GRE sig)}\\
          & \mid \Rstar r & \ltext{Kleene star}
                         & (L (r))^* 
-                           && \texttt{| Star (GRE sig)}\\
+                           && \code{| Star (GRE sig)}\\
          & \mid \Rintersect rs & \ltext{intersection}
                         & L (r) \cap L (s)
-                           && \texttt{| And (GRE sig) (GRE sig)}\\
+                           && \code{| And (GRE sig) (GRE sig)}\\
          & \mid \Rcomplement r & \ltext{complement}
                         & \Sigma^* \setminus L (r)
-                           && \texttt{| Not (GRE sig)}
+                           && \code{| Not (GRE sig)}
   \end{align*}
   % \begin{align*}
   %   L (\Rnull) &= \emptyset\\
@@ -117,9 +117,9 @@ U \cdot U^i$.
 
 We start with a naive implementation of the mathematical definition in
 Figure~\ref{fig:generalized-regular-expressions}. We define an
-alphabet by a list of \texttt{Char}.  We represent words by Haskell's
-\texttt{Data.Text.Text} datatype, abbreviated to \texttt{T.Text}. We
-represent a language as a lazy list of \texttt{Text}, as a language
+alphabet by a list of \code{Char}.  We represent words by Haskell's
+\code{Data.Text.Text} datatype, abbreviated to \code{T.Text}. We
+represent a language as a lazy list of \code{Text}, as a language
 can be an infinite set. There are two further restrictions.
 \begin{enumerate}
 \item The output of a generator should not contain repetitions
@@ -128,7 +128,7 @@ can be an infinite set. There are two further restrictions.
 \item The output of a generator should not be partial because it would
   lead the test code to hang on a nonterminating input.
 \end{enumerate}
-\begin{verbatim}
+\begin{lstlisting}
 type Sigma = Char
 type Lang = T.Text
 
@@ -147,25 +147,25 @@ generate sigma r = gen r
 union, concatenate, intersect :: Lang -> Lang -> Lang
 star :: Lang -> Lang
 complement :: Sigma -> Lang -> Lang
-\end{verbatim}
+\end{lstlisting}
 Now we consider the operators in turn.
 
 \subsubsection{Union}
-Ideally, the \texttt{union} operator it should behave like
+Ideally, the \code{union} operator it should behave like
 set union:
-\begin{verbatim}
+\begin{lstlisting}
 w `elem` union xs ys   <==>   w `elem` xs || w `elem` ys
-\end{verbatim}
-Can we implement \texttt{union} simply by list append?
+\end{lstlisting}
+Can we implement \code{union} simply by list append?
 No, we cannot. 
-If \texttt{xs} is an infinite list and \texttt{ys} is different from
-\texttt{xs}, then there is some \texttt{w `elem` ys} such that
-\texttt{w `elem` union xs ys} does not terminate.
-If \texttt{xs} is a finite list without duplicates, then simply
-appending \texttt{ys} may result in duplicates.
-Another alternative, \texttt{Data.List.union}, would apply only to finite lists.
+If \code{xs} is an infinite list and \code{ys} is different from
+\code{xs}, then there is some \code{w `elem` ys} such that
+\code{w `elem` union xs ys} does not terminate.
+If \code{xs} is a finite list without duplicates, then simply
+appending \code{ys} may result in duplicates.
+Another alternative, \code{Data.List.union}, would apply only to finite lists.
 
-Can we implement \texttt{union} by interleaving? No, we cannot for
+Can we implement \code{union} by interleaving? No, we cannot for
 similar reasons.
 
 Our approach is to generate a language as a potentially infinite list
@@ -173,14 +173,14 @@ in ascending \emph{length-lexicographic order}. The
 length-lexicographic ordering is defined by $u \lleq 
 v$ if $|u|<|v|$ or $|u|=|v|$ and $u\le v$ in the usual lexicographic
 ordering. Here is a definition in Haskell.
-\begin{verbatim}
+\begin{lstlisting}
 lleq :: T.Text -> T.Text -> Bool
 lleq u v =
   let lxs = T.length xs
       lys = T.length ys
   in  lxs < lys ||
       lxs == lys && xs <= ys
-\end{verbatim}
+\end{lstlisting}
 This ordering has the advantage that it gives raise to a standard
 enumeration of all words over a totally ordered alphabet. In
 particular, for each pair of words $u \lleq v$ there is only a finite
@@ -189,9 +189,9 @@ not hold for the lexicographic ordering where all elements of $a\cdot
 (a+b)^*$ lie between words $a$ and $b$ (assuming $\Sigma = \{a, b\}$
 with $a<b$).
 
-With the LLO representation, the \texttt{union} operation can be
+With the LLO representation, the \code{union} operation can be
 implemented by merging two lazy lists.
-\begin{verbatim}
+\begin{lstlisting}
 union :: Lang -> Lang -> Lang
 union [] ys = ys
 union xs [] = xs
@@ -199,7 +199,7 @@ union xs@(x:xs') ys@(y:ys')
   | x == y   = x : union xs' ys'
   | lleq x y = x : union xs' ys
   | otherwise  = y : union xs ys'
-\end{verbatim}
+\end{lstlisting}
 Moreover, this operation runs in linear time. If the input languages
 are finite of size $m$ and $n$, respectively, then $O(m+n)$
 comparisons, pattern matches, and cons operations are needed.
