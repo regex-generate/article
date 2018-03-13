@@ -163,7 +163,7 @@ can be an infinite set. There are two further restrictions.
 import Data.Text as T
 
 type Alphabet = [Char]
-type Lang = T.Text
+type Lang = [T.Text]
 
 generate :: Alphabet -> GRE Char -> Lang
 generate sigma r = gen r
@@ -180,6 +180,7 @@ generate sigma r = gen r
 \begin{figure}[tp]
 \begin{lstlisting}
 module Examples.Naive where
+import qualified Data.Text as T
 
 union :: Lang -> Lang -> Lang
 union lx ly = lx ++ ly
@@ -202,11 +203,11 @@ complement sigma lx =
   \caption{Partial implementation of the regular operators}
   \label{fig:regular-operators-0}
 \end{figure}
-As a basis for our further discussion, we exhibit a partial 
+As a basis for further discussion, we exhibit a partial 
 implementation in Figure~\ref{fig:regular-operators-0}.
 This implementation has a number of deficiencies.
 \begin{description}
-\item[union] The output may contain duplicates. More seriously, if
+\item[union] The output may contain duplicates. If
   \texttt{lx} is infinite, then no words from \texttt{ly} will ever be
   produced. This behavior violates the specification of set union
   because there may be elements in \texttt{ly} that never appear in
@@ -214,7 +215,7 @@ This implementation has a number of deficiencies.
 
   If we restricted ourselves to finite lists, then replacing
   \texttt{++} with \texttt{Data.List.union} would be an appropriate
-  implementation, but its worst-case complexity is quadratic.
+  implementation, but its worst-case time complexity is quadratic.
 \item[concatenate] The output may contain duplicates. If \texttt{ly}
   is infinite, then only the first word in \texttt{lx} contributes to
   the output.
@@ -227,11 +228,13 @@ This implementation has a number of deficiencies.
   then the resulting list may be partial because the \texttt{elem}
   operation may not terminate.
 
-  For finite lists, this implementation would be appropriate.
+  For finite lists, this implementation is appropriate.
 \item[star] The output may contain duplicates. If \texttt{lx} is
-  infinite, then the generated language is just \texttt{T.empty : lx}.
+  infinite, then the generated language is just \texttt{T.empty : lx},
+  so that many elements of \texttt{star lx} may not appear in the
+  output.
 
-  If \texttt{lx} was guaranteed to be finite, then \texttt{star} can
+  If \texttt{lx} is finite, then \texttt{star} can
   be implemented in a way that guarantees no duplication. However, to
   retain finiteness, we would have to impose an arbitrary limit on the
   size of the output.
@@ -239,15 +242,15 @@ This implementation has a number of deficiencies.
   whether a word occurs in a lazy list \texttt{lx}. Hence, we have no
   good definition to propose.
 
-  If \texttt{lx} was guaranteed to be finite, then it is possible to
+  If \texttt{lx} is finite, then it is possible to
   enumerate its complement without repetitions. Again, to retain
-  finiteness, we would have to impose an arbitrary limit on the size
+  finiteness, we have to impose an arbitrary limit on the size
   of the output.
 \end{description}
 \begin{figure}[tp]
 \begin{lstlisting}
 module Examples.Finite where
-
+import qualified Data.Text as T
 import Data.List as L
 
 limit :: Int
@@ -282,20 +285,21 @@ complement sigma lx = take limit (concat lsigmastar L.\\ lx)
   \label{fig:finite-regular-operators}
 \end{figure}
 Figure~\ref{fig:finite-regular-operators} contains an implementation
-of a finite version of the generator module. The implementation of
-\texttt{star} follows the definition of $U^*$ literally. It first
-recursively creates a list \texttt{lxs} of the iterates $U_\bullet^i$ where
+of a finite version of the generator module according to the preceding
+discussion. The implementation of \texttt{star} follows the definition
+of $U^*$ literally. It first recursively creates a list \texttt{lxs}
+of the iterates $U_\bullet^i$ where
 $U_\bullet = U \setminus \{\varepsilon\}$, concatenates all of
 them\footnote{It is easy to see that $U^* = U_\bullet^*$.}, removes
-duplicates, and imposes the limit. Removing duplicates introduces quadratic
-worst-case time complexity in the size of the output.
+the duplicates, and imposes the limit. Removing duplicates introduces
+quadratic worst-case time complexity in the size of the output.
 
 The implementation of \texttt{complement} generates the language
 $\Sigma^*$ analogously to the construction of $U^*$ in
 \texttt{star}, uses the list difference operator
 \texttt{L.\textbackslash\textbackslash} to remove elements of
 \texttt{lx}, and finally imposes the limit. Its worst-case run time is
-$O(m\cdot n)$ where $m$ is the limit and $n = |\texttt{lx}|$.
+$O(m\cdot n)$ where $m$ is the limit and $n = \code{length lx}$.
 
 In summary, the naive approach in
 Figure~\ref{fig:regular-operators-0} can generate infinite languages,
@@ -317,6 +321,59 @@ efficiently without incurring extraneous quadratic behavior?
 
 \subsection{Ordered Enumeration}
 \label{sec:ordered-enumeration}
+\begin{figure}[tp]
+\begin{lstlisting}
+union :: Lang -> Lang -> Lang
+union xs@(x:xs') ys@(y:ys') =
+  case compare x y of
+    EQ -> x : union xs' ys'
+    LT -> x : union xs' ys
+    GT -> y : union xs ys'
+union xs ys = xs ++ ys
+\end{lstlisting}
+
+\begin{lstlisting}
+intersect :: Lang -> Lang -> Lang
+intersect xs@(x:xs') ys@(y:ys') =
+  case compare x y of
+    EQ -> x : intersect xs' ys'
+    LT -> intersect xs' ys
+    GT -> intersect xs ys'
+intersect xs ys = []
+\end{lstlisting}
+
+\begin{lstlisting}
+difference :: Lang -> Lang -> Lang
+difference xs@(x:xs') ys@(y:ys') =
+  case compare x y of
+    EQ -> difference xs' ys'
+    LT -> x : difference xs' ys
+    GT -> difference xs ys'
+difference xs ys = xs
+\end{lstlisting}
+  \caption{Union, intersection, and difference by merging lists}
+  \label{fig:merging-lists}
+\end{figure}
+
+First, we concentrate on improving on the quadratic behavior. The key
+to improve the complexity of union, intersection, and complement lies
+in representing a language by a strictly increasingly sorted list.
+In this case, the three operations can be implemented by variations of
+the merge operation on lists as shown in
+Figure~\ref{fig:merging-lists}.
+
+The merge-based operations run in linear time on finite
+lists. However, the operations are incomplete on infinite lists. As
+an example of the incompleteness, consider the languages $U = a\cdot
+(a+b)^*$ and the singleton language $V = \{b\}$ where $\Sigma = \{a, b\}$
+with $a<b$, represented as strictly increasing lists, the infinite
+list \code{lu} and the singleton list \code{lv}. The problem is that
+the list \code{union lu lv} does not contain the word $b$. The source
+of the problem is a (non-) property of the lexicographic ordering:
+there are words $v<w$ such that there are infinitely many words $u$
+with $v<u$ and $u<w$. For example, $v=a$, $w=b$, and $u\in U \setminus \{a\}$.
+
+
 
 
 \subsubsection{Union}
@@ -353,22 +410,10 @@ lleq u v =
 This ordering has the advantage that it gives raise to a standard
 enumeration of all words over a totally ordered alphabet. In
 particular, for each pair of words $u \lleq v$ there is only a finite
-number of words $w$ such that $u \lleq w$ and $w \lleq v$. This property does
-not hold for the lexicographic ordering where all elements of $a\cdot
-(a+b)^*$ lie between words $a$ and $b$ (assuming $\Sigma = \{a, b\}$
-with $a<b$).
-
+number of words $w$ such that $u \lleq w$ and $w \lleq v$. 
 With the LLO representation, the \code{union} operation can be
 implemented by merging two lazy lists.
-\begin{lstlisting}
-union :: Lang -> Lang -> Lang
-union [] ys = ys
-union xs [] = xs
-union xs@(x:xs') ys@(y:ys')
-  | x == y   = x : union xs' ys'
-  | lleq x y = x : union xs' ys
-  | otherwise  = y : union xs ys'
-\end{lstlisting}
+
 Moreover, this operation runs in linear time. If the input languages
 are finite of size $m$ and $n$, respectively, then $O(m+n)$
 comparisons, pattern matches, and cons operations are needed.
