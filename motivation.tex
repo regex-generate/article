@@ -1,22 +1,26 @@
 \section{Motivation}
 \label{sec:motivation}
 
-Let's say someone implemented a clever algorithm, say \texttt{match}, for
+Suppose someone implemented a clever algorithm for
 regular expression matching. 
-We do not trust this implementation and would like to test it.
-Testing the implementation requires us to come up with test cases and
-implement a test oracle, say \texttt{matchOracle}.
+We want to use this implementation, but we also want to play safe and
+make sure it is largely bug free by subjecting it to extensive
+testing---verification is deemed to expensive.
+Such testing requires us to come up with test cases and
+implement a test oracle.
+
 
 A test case consists of a regular expression \texttt{r} and an input
-string \texttt{s}. Running the test means to execute \texttt{match r
-  s} and check whether the result is correct by comparing with
-\texttt{matchOracle r s}. But how do we know whether
-\texttt{matchOracle} is correct, short of verifying it?
+string \texttt{s}. If \texttt{match} is the implementation of matching
+and \texttt{matchOracle} is the test oracle, then
+executing the test case means to execute \texttt{match r
+  s} and check whether the result is correct by comparing it with
+\texttt{matchOracle r s}. 
 
-A popular way of conducting this test is using QuickCheck
+A popular way of conducting such a test is using the QuickCheck library
 \cite{quickcheck}, which performs property-based random testing. Using
-QuickCheck, we would write a generator for regular expressions and then
-use the generator for strings to generate many inputs for a
+QuickCheck, we would write a random generator for regular expressions
+and then use the random generator for strings to generate many inputs for a
 generated regular expression.
 
 However, this approach has a
@@ -31,13 +35,32 @@ length $n$ is an element of $L$ is
 \item $\frac{1}{2^n}$ if $n$ is even.
 \end{itemize}
 Thus, the probability $p_n$ that a random word of length less than or equal to
-$n$ is an element of $L$ is way smaller:
+$n$ is an element of $L$ is very small:
 \begin{align*}
   p_n &= \frac{\lfloor n/2 \rfloor}{2^{n+1} - 1}
         \le \frac{n}{2^{n+2} - 2}
 \end{align*}
 Hence, the probability of (uniformly) randomly
 selecting a word in $L$ is zero in the limit.
+
+Hence, there are two problems with testing the regular expression
+matcher.
+\begin{enumerate}
+\item How do we know whether the test oracle is correct, short of
+  verifying it?
+\item How do we ensure that relevant test cases are generated, given
+  that the probability of randomly picking a word in the language is
+  $0$ or $1$ for many regular languages?\footnote{Exercise for the
+    interested reader:
+    \begin{enumerate}
+    \item Come up with a regular language $R$ such that $P(w\in R)$ is
+      different from $0$ or $1$.
+    \item Given a proper fraction $m/n$ (that is $n>0$ and $0\le m\le
+      n$) define a regular language $R$ such that $P (w\in R) = m/n$.
+    \end{enumerate}
+  }
+\end{enumerate}
+
 
 Wouldn't it be nice to have a systematic and obviously correct means
 of generating words \textbf{inside} of $L$ and \textbf{outside} of
@@ -91,15 +114,22 @@ in the language and in the language's complement.
   \label{fig:generalized-regular-expressions}
 \end{figure}
 
-We will look at a slightly more general question, which subsumes the
-purpose of generating positive and negative sample words for
-testing. A \emph{generalized regular expression}
+In the follwing we will tackle a slightly more general question, namely generating
+the language of a \emph{generalized regular expression}, 
+which subsumes the purpose of generating positive and negative sample
+words for testing.
+
+A generalized regular expression
 (Figure~\ref{fig:generalized-regular-expressions}) is an expression
 built from the regular operators empty set, empty word, singleton word
 consisting of a single letter $a$ chosen from a finite alphabet
 $\Sigma$, alternative, concatenation, and Kleene star. In addition, it
 may contain the operators intersection and complement.
 
+As customary, we write $\Sigma^*$ for the set of finite words over
+alphabet $\Sigma$, which is defined inductively as the smallest set
+such that $\varepsilon \in
+\Sigma^*$ and $\forall a\in\Sigma, \forall w\in\Sigma^*, aw \in \Sigma^*$.
 The semantics of an expression, $L(r) \subseteq \Sigma^*$, is a set of
 words, which is also defined in
 Figure~\ref{fig:generalized-regular-expressions}. It relies on
@@ -117,7 +147,7 @@ U \cdot U^i$.
 
 We start with a naive implementation of the mathematical definition in
 Figure~\ref{fig:generalized-regular-expressions}. We define an
-alphabet by a list of \texttt{Char}.  We represent words by Haskell's
+alphabet by a list of \texttt{Char}.  We represent words by elements of Haskell's
 \texttt{Data.Text.Text} datatype, abbreviated to \texttt{T.Text}. We
 represent a language as a lazy list of \texttt{Text}, as a language
 can be an infinite set. There are two further restrictions.
@@ -129,10 +159,12 @@ can be an infinite set. There are two further restrictions.
   lead the test code to hang on a nonterminating input.
 \end{enumerate}
 \begin{verbatim}
-type Sigma = Char
+import Data.Text as T
+
+type Alphabet = [Char]
 type Lang = T.Text
 
-generate :: Sigma -> GRE Char -> Lang
+generate :: Alphabet -> GRE Char -> Lang
 generate sigma r = gen r
   where
     gen Zero = []
@@ -143,12 +175,148 @@ generate sigma r = gen r
     gen (Star r) = star (gen r)
     gen (And r s) = intersect (gen r) (gen s)
     gen (Not r) = complement sigma (gen r)
-
-union, concatenate, intersect :: Lang -> Lang -> Lang
-star :: Lang -> Lang
-complement :: Sigma -> Lang -> Lang
 \end{verbatim}
-Now we consider the operators in turn.
+\begin{figure}[tp]
+\begin{verbatim}
+module Examples.Naive where
+
+union :: Lang -> Lang -> Lang
+union lx ly = lx ++ ly
+
+concatenate :: Lang -> Lang -> Lang
+concatenate lx ly = [T.append wx wy | wx <- lx, wy <- ly ]
+
+intersect :: Lang -> Lang -> Lang
+intersect lx ly = [wx | wx <- lx, wx `elem` ly ]
+
+star :: Lang -> Lang
+star lx = concat lxi
+  where
+    lxi = [T.empty] : map (concatenate lx) lxi
+
+complement :: Alphabet -> Lang -> Lang
+complement sigma lx =
+  undefined
+\end{verbatim}
+  \caption{Partial implementation of the regular operators}
+  \label{fig:regular-operators-0}
+\end{figure}
+As a basis for our further discussion, we exhibit a partial 
+implementation in Figure~\ref{fig:regular-operators-0}.
+This implementation has a number of deficiencies.
+\begin{description}
+\item[union] The output may contain duplicates. More seriously, if
+  \texttt{lx} is infinite, then no words from \texttt{ly} will ever be
+  produced. This behavior violates the specification of set union
+  because there may be elements in \texttt{ly} that never appear in
+  \texttt{union lx ly}.
+
+  If we restricted ourselves to finite lists, then replacing
+  \texttt{++} with \texttt{Data.List.union} would be an appropriate
+  implementation, but its worst-case complexity is quadratic.
+\item[concatenate] The output may contain duplicates. If \texttt{ly}
+  is infinite, then only the first word in \texttt{lx} contributes to
+  the output.
+
+  For finite lists, an appropriate implementation would compose the
+  raw product computation with \texttt{Data.List.nub} to remove
+  duplicates. The worst-case complexity of \texttt{nub} is quadratic.
+\item[intersect] The output contains no duplicates, if \texttt{lx}
+  does not contain duplicates, either. If \texttt{ly} is infinite,
+  then the resulting list may be partial because the \texttt{elem}
+  operation may not terminate.
+
+  For finite lists, this implementation would be appropriate.
+\item[star] The output may contain duplicates. If \texttt{lx} is
+  infinite, then the generated language is just \texttt{T.empty : lx}.
+
+  If \texttt{lx} was guaranteed to be finite, then \texttt{star} can
+  be implemented in a way that guarantees no duplication. However, to
+  retain finiteness, we would have to impose an arbitrary limit on the
+  size of the output.
+\item[complement] In general there is no computable way to determine
+  whether a word occurs in a lazy list \texttt{lx}. Hence, we have no
+  good definition to propose.
+
+  If \texttt{lx} was guaranteed to be finite, then it is possible to
+  enumerate its complement without repetitions. Again, to retain
+  finiteness, we would have to impose an arbitrary limit on the size
+  of the output.
+\end{description}
+\begin{figure}[tp]
+\begin{verbatim}
+module Examples.Finite where
+
+import Data.List as L
+
+limit :: Int
+limit = 1024
+
+union :: Lang -> Lang -> Lang
+union lx ly = L.union lx ly
+
+concatenate :: Lang -> Lang -> Lang
+concatenate lx ly = L.nub [T.append wx wy | wx <- lx, wy <- ly ]
+
+intersect :: Lang -> Lang -> Lang
+intersect lx ly = [wx | wx <- lx, wx `elem` ly ]
+
+star :: Lang -> Lang
+star lx = take limit $ removeDuplicates $ concat lxs
+  where
+    lxs = [T.empty] : map (concatenate lx1) lxs
+    lx1 = L.delete T.empty lx
+    removeDuplicates [] = []
+    removeDuplicates (w:ws) = w : removeDuplicates (filter (!=w) ws)
+
+complement :: Alphabet -> Lang -> Lang
+complement sigma lx = take limit (concat lsigmastar L.\\ lx) 
+  where
+    lsigmastar =
+      [T.empty] : 
+      map (\lsigmai -> concatMap (\la -> concatenate la lsigmai) lsigma1) lsigmastar
+    lsigma1 = map T.singleton sigma
+\end{verbatim}
+  \caption{Finite implementation of the regular operators}
+  \label{fig:finite-regular-operators}
+\end{figure}
+Figure~\ref{fig:finite-regular-operators} contains an implementation
+of a finite version of the generator module. The implementation of
+\texttt{star} follows the definition of $U^*$ literally. It first
+recursively creates a list \texttt{lxs} of the iterates $U_\bullet^i$ where
+$U_\bullet = U \setminus \{\varepsilon\}$, concatenates all of
+them\footnote{It is easy to see that $U^* = U_\bullet^*$.}, removes
+duplicates, and imposes the limit. Removing duplicates introduces quadratic
+worst-case time complexity in the size of the output.
+
+The implementation of \texttt{complement} generates the language
+$\Sigma^*$ analogously to the construction of $U^*$ in
+\texttt{star}, uses the list difference operator
+\texttt{L.\textbackslash\textbackslash} to remove elements of
+\texttt{lx}, and finally imposes the limit. Its worst-case run time is
+$O(m\cdot n)$ where $m$ is the limit and $n = |\texttt{lx}|$.
+
+In summary, the naive approach in
+Figure~\ref{fig:regular-operators-0} can generate infinite languages,
+but has many drawbacks that lead to duplication and incompleteness
+(words in the language are not enumerated). Moreover, the complement
+is not computable for this approach.
+
+The finite approach in Figure~\ref{fig:finite-regular-operators}
+imposes an arbitrary limit on the number of generated words. This
+limit can lead to omitting words in nonempty languages where $P (w\in
+R) = 0$. Moreover, there are many places (in \texttt{union},
+\texttt{concatenate}, and \texttt{star}) with quadratic worst-case
+time complexity. 
+
+At this point, the question is: Can we do better? Can we come up with
+a generator that supports finite as well as infinite languages
+efficiently without incurring extraneous quadratic behavior?
+
+
+\subsection{Ordered Enumeration}
+\label{sec:ordered-enumeration}
+
 
 \subsubsection{Union}
 Ideally, the \texttt{union} operator it should behave like
