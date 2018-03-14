@@ -126,4 +126,7 @@ setup.log
 
 # ACM template
 *.cut
+
+# emacs
 *~
+_region_.tex
