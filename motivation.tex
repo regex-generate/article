@@ -671,8 +671,12 @@ This situation arises in the following example:
 [""
 \end{verbatim}
 With these inputs, only \code{xsegs !! 0} and \code{ysegs !! 0} are
-non-empty, so that \code{collect n = [] ++ collect (n+1)} for
-\code{n>0}. Obviously, such a definition is not productive.
+non-empty, so that for
+\code{n>0}
+\begin{lstlisting}[numbers=false]
+collect n = [] ++ collect (n+1)
+\end{lstlisting}
+Obviously, such a definition is not productive.
 
 A similar phenomenon arises with \code{star}, where \code{star []} and
 \code{star [""]} result in partial lists. All other input languages
