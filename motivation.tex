@@ -68,7 +68,12 @@ $L$? Such a generation algorithm would obviate the need for an oracle
 and it would make sure that we can control the number of test inputs
 in the language and in the language's complement.
 
-\subsection{Research Question}
+In the follwing we will tackle a slightly more general question, namely generating
+the language of a \emph{generalized regular expression}, 
+which subsumes the purpose of generating positive and negative sample
+words for testing.
+
+\subsection{Brief Intermezzo on Formal Languages}
 \label{sec:research-question}
 
 \begin{figure}[tp]
@@ -114,18 +119,6 @@ in the language and in the language's complement.
   \label{fig:generalized-regular-expressions}
 \end{figure}
 
-In the follwing we will tackle a slightly more general question, namely generating
-the language of a \emph{generalized regular expression}, 
-which subsumes the purpose of generating positive and negative sample
-words for testing.
-
-A generalized regular expression
-(Figure~\ref{fig:generalized-regular-expressions}) is an expression
-built from the regular operators empty set, empty word, singleton word
-consisting of a single letter $a$ chosen from a finite alphabet
-$\Sigma$, alternative, concatenation, and Kleene star. In addition, it
-may contain the operators intersection and complement.
-
 As customary, we write $\Sigma^*$ for the set of finite words over
 alphabet $\Sigma$, which is defined inductively as the smallest set
 such that $\varepsilon \in
@@ -135,12 +128,30 @@ words, which is also defined in
 Figure~\ref{fig:generalized-regular-expressions}. It relies on
 standard definitions from the theory of formal languages. We write
 $\varepsilon$ for the empty word and $u\cdot v$ for the concatenation
-of words $u, v \in \Sigma^*$. If $U, V \subseteq \Sigma^*$ are
+of words $u, v \in \Sigma^*$. We write $|u|$ for the length of word
+$u$. Unless otherwise specified, we use $a, b, c, \dots$ to range over
+$\Sigma$ and $u, v, w, \dots$ to range over $\Sigma^*$.
+
+If $U, V \subseteq \Sigma^*$ are
 languages, then their concatenation (or product) is defined as $U\cdot
-V = \{ u\cdot v \mid u\in U, v\in V\}$. The Kleene closure of a
+V = \{ u\cdot v \mid u\in U, v\in V\}$. We sometimes write $u\cdot V$
+as an abbreviation for the product $\{u\}\cdot V$ with a singleton
+language. The Kleene closure of a
 language $U\subseteq \Sigma^*$ is defined as $U^* =
 \bigcup_{i=0}^\infty U^i$ where $U^0 = \{\varepsilon\}$ and $U^{i+i} =
 U \cdot U^i$. 
+
+A generalized regular expression
+(Figure~\ref{fig:generalized-regular-expressions}) is an expression
+built from the regular operators empty set, empty word, singleton word
+consisting of a single letter $a$ chosen from a finite alphabet
+$\Sigma$, alternative, concatenation, and Kleene star. In addition, it
+may contain the operators intersection and complement. The extra
+operators do not add extra descriptive power as regular languages are
+closed under intersection and complement \cite{AhoHopcroftUllman}, but
+generalized regular expressions can be much more concise. 
+
+
 
 \subsection{Naive Approach}
 \label{sec:naive-approach}
@@ -323,7 +334,7 @@ efficiently without incurring extraneous quadratic behavior?
 \label{sec:ordered-enumeration}
 \begin{figure}[tp]
 \begin{lstlisting}
-union :: Lang -> Lang -> Lang
+union :: (Ord t) => [t] -> [t] -> [t]
 union xs@(x:xs') ys@(y:ys') =
   case compare x y of
     EQ -> x : union xs' ys'
@@ -333,7 +344,7 @@ union xs ys = xs ++ ys
 \end{lstlisting}
 
 \begin{lstlisting}
-intersect :: Lang -> Lang -> Lang
+intersect :: (Ord t) => [t] -> [t] -> [t]
 intersect xs@(x:xs') ys@(y:ys') =
   case compare x y of
     EQ -> x : intersect xs' ys'
@@ -343,7 +354,7 @@ intersect xs ys = []
 \end{lstlisting}
 
 \begin{lstlisting}
-difference :: Lang -> Lang -> Lang
+difference :: (Ord t) => [t] -> [t] -> [t]
 difference xs@(x:xs') ys@(y:ys') =
   case compare x y of
     EQ -> difference xs' ys'
@@ -363,64 +374,128 @@ the merge operation on lists as shown in
 Figure~\ref{fig:merging-lists}.
 
 The merge-based operations run in linear time on finite
-lists. However, the operations are incomplete on infinite lists. As
+lists. However, the operations in Figure~\ref{fig:merging-lists} are
+incomplete on infinite lists. As 
 an example of the incompleteness, consider the languages $U = a\cdot
 (a+b)^*$ and the singleton language $V = \{b\}$ where $\Sigma = \{a, b\}$
 with $a<b$, represented as strictly increasing lists, the infinite
 list \code{lu} and the singleton list \code{lv}. The problem is that
-the list \code{union lu lv} does not contain the word $b$. The source
-of the problem is a (non-) property of the lexicographic ordering:
+the list \code{union lu lv} does not contain the word $b$; more
+precisely, \code{T.singleton 'b' `elem` union lu lv} does not
+terminate whereas \code{u `elem` union lu lv} yields \code{True} for
+all \code{u} in \code{lu}. The source 
+of the problem is that Haskell's standard ordering of lists and
+\code{Text} is the \emph{lexicographic ordering}, which we call
+$\le$. It relies on an underlying total ordering on $\Sigma$ and is
+defined inductively:
+\begin{mathpar}
+  \inferrule{}{\varepsilon  \le v}
+  
+  \inferrule{u \le v}{au \le av}
+
+  \inferrule{a < b}{au \le bv}
+\end{mathpar}
+
+This total ordering
+is often used for $\Sigma^*$, but it has the property that
 there are words $v<w$ such that there are infinitely many words $u$
-with $v<u$ and $u<w$. For example, $v=a$, $w=b$, and $u\in U \setminus \{a\}$.
+with $v<u$ and $u<w$. For example, $v=a$, $w=b$, and $u\in U \setminus
+\{a\}$, which explains the nonterminating behavior just exhibited.
 
-
-
-
-\subsubsection{Union}
-Ideally, the \code{union} operator it should behave like
-set union:
-\begin{lstlisting}
-w `elem` union xs ys   <==>   w `elem` xs || w `elem` ys
-\end{lstlisting}
-Can we implement \code{union} simply by list append?
-No, we cannot. 
-If \code{xs} is an infinite list and \code{ys} is different from
-\code{xs}, then there is some \code{w `elem` ys} such that
-\code{w `elem` union xs ys} does not terminate.
-If \code{xs} is a finite list without duplicates, then simply
-appending \code{ys} may result in duplicates.
-Another alternative, \code{Data.List.union}, would apply only to finite lists.
-
-Can we implement \code{union} by interleaving? No, we cannot for
-similar reasons.
-
-Our approach is to generate a language as a potentially infinite list
-in ascending \emph{length-lexicographic order}. The
-length-lexicographic ordering is defined by $u \lleq 
+Fortunately, there is another total ordering on words with better
+properties. The
+\emph{length-lexicographic ordering} is defined by $u \lleq 
 v$ if $|u|<|v|$ or $|u|=|v|$ and $u\le v$ in the usual lexicographic
-ordering. Here is a definition in Haskell.
+ordering (but only applied to words of the same length). Here is a definition in Haskell.
 \begin{lstlisting}
-lleq :: T.Text -> T.Text -> Bool
-lleq u v =
-  let lxs = T.length xs
-      lys = T.length ys
-  in  lxs < lys ||
-      lxs == lys && xs <= ys
+llocompare :: T.Text -> T.Text -> Ordering
+llocompare u v =
+  case compare (T.length xs) (T.length ys) of
+    EQ -> compare xs ys
+    LT -> LT
+    GT -> GT
 \end{lstlisting}
-This ordering has the advantage that it gives raise to a standard
-enumeration of all words over a totally ordered alphabet. In
-particular, for each pair of words $u \lleq v$ there is only a finite
-number of words $w$ such that $u \lleq w$ and $w \lleq v$. 
-With the LLO representation, the \code{union} operation can be
-implemented by merging two lazy lists.
+This ordering has the additional advantage that it gives raise to a standard
+enumeration of all words over a totally ordered alphabet as an order-preserving
+bijective function from the natural numbers to $\Sigma^*$. Using this
+bijection we can show that for each pair of words $v \lleq w$ there is only a finite
+number of words $u$ such that $v \lleq u$ and $u \lleq w$. 
 
-Moreover, this operation runs in linear time. If the input languages
+For the sake of simplicity, we assume from now on that \code{T.Text}
+is ordered by \code{llocompare} and call the representation of a
+language by a strictly increasing list in length-lexicographic order
+its \emph{LLO representation}. 
+
+With the LLO representation, the operations \code{union},
+\code{intersect}, and \code{difference} run in linear time. If the input languages
 are finite of size $m$ and $n$, respectively, then $O(m+n)$
 comparisons, pattern matches, and cons operations are needed.
+Moreover, the operations are complete in the sense that any element in
+the output is sure to be detected by a terminating computation. 
+It is easy to implement a version of \code{elem} that exploits the LLO ordering,
+such that the element test is decidable for any infinite
+language.
 
-This implementation fulfills the specification to a much larger
-degree, but it still gets stuck on partial lists.
 
+
+\subsubsection{Concatenation}
+To implement concatenation, we are in the following situation. Given
+two languages $U, V \subseteq \Sigma^*$ in LLO representation,
+produce the LLO representation of $U \cdot V =  \{ u\cdot v \mid u\in
+U, v\in V\}$. If we compute the product naively as in
+Figure~\ref{fig:regular-operators-0}, then the output is not in LLO
+form:\footnote{The example uses \code{String} for simplicity.}
+\begin{verbatim}
+λ> let lu = ["a", "ab"]
+λ> let lv = ["", "b", "bb"]
+λ> [ u++v | u <- lu, v <- lv ]
+["a","ab","abb","ab","abb","abbb"]
+\end{verbatim}
+In fact, the output violates both constraints: it is not increasing
+and it has duplicates.
+
+Perhaps the following observation helps: for each $u\in U$, the LLO
+representation of the language $u\cdot V$ can be trivially produced
+because the list \code{[ u++v | v <- lv ]} is strictly
+increasing. This observation motivates the following definition of
+language concatenation (using \code{union} from Figure~\ref{fig:merging-lists}).
+\begin{lstlisting}
+concatenate' :: Lang -> Lang -> Lang
+concatenate' lx ly =
+  foldr union [] $ [[ T.append x y | y <- ly] | x <- lx]
+\end{lstlisting}
+This definition works fine as long as \code{lx} is finite. If it is
+infinite, then the \code{foldr} creates an infinitely deep nest of
+invocations of \code{union}, which do not make progress because
+\code{union} is strict in both arguments.
+
+At this point, the theory of formal languages can help. The notion of
+a \emph{formal power series} has been invented to reason about and
+compute with entire languages \cite{formal power series}. In full
+generality, a formal power series is a mapping from $\Sigma^*$ into a
+semiring $S$ and we write $\FPS{S}$ for the set of these
+mappings. Formally, an element $r \in \FPS{S}$ is written as the
+formal sum
+\begin{align*}
+  r &= \sum_{w \in \Sigma^*} (r,w) \cdot w
+\end{align*}
+where $(r,w) \in S$ is the coefficient of $w$ in $r$.
+A popular candidate for this semiring is the boolean semiring $B$
+because $\FPS{B}$ is isomorphic to the set of languages over
+$\Sigma$. This isomorphism maps $L\subseteq\Sigma^*$ to its
+characteristic series $r_L$ where $(r_L, w) = (w \in L)$.
+
+The usual language operations have their counterparts on formal power
+series. We consider just three of them where the ``additions'' and ``multiplications'' on the
+right side of the definitions take place in the underlying semiring.
+\begin{itemize}
+\item Sum: $(r_1 + r_2, w) = (r_1, w) + (r_2, w)$ 
+\item Product: $(r_1 \cdot r_2, w) = \sum_{uv=w} (r_1, u) (r_2,v)$
+\item Hadamard product: $(r_1 \odot r_2, w) = (r_1, w) (r_2, w)$
+\end{itemize}
+
+
+\clearpage{}
 %%% Local Variables:
 %%% mode: latex
 %%% TeX-master: "main"
