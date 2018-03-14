@@ -18,7 +18,7 @@ executing the test case means to execute \code{match r
 \code{matchOracle r s}. 
 
 A popular way of conducting such a test is using the QuickCheck library
-\cite{quickcheck}, which performs property-based random testing. Using
+\cite{DBLP:conf/icfp/ClaessenH00}, which performs property-based random testing. Using
 QuickCheck, we would write a random generator for regular expressions
 and then use the random generator for strings to generate many inputs for a
 generated regular expression.
@@ -150,7 +150,7 @@ consisting of a single letter $a$ chosen from a finite alphabet
 $\Sigma$, alternative, concatenation, and Kleene closure. In addition, it
 may contain the operators intersection and complement. The extra
 operators do not add extra descriptive power as regular languages are
-closed under intersection and complement \cite{AhoHopcroftUllman}, but
+closed under intersection and complement \cite{DBLP:books/daglib/0011126}, but
 generalized regular expressions can be much more concise. 
 
 
@@ -471,7 +471,7 @@ invocations of \code{union}, which do not make progress because
 
 At this point, the theory of formal languages can help. The notion of
 a \emph{formal power series} has been invented to reason about and
-compute with entire languages \cite{formal power series}. In full
+compute with entire languages \cite{DBLP:books/daglib/0067812,DBLP:books/sp/KuichS86}. In full
 generality, a formal power series is a mapping from $\Sigma^*$ into a
 semiring $S$ and we write $\FPS{S}$ for the set of these
 mappings. Formally, an element $r \in \FPS{S}$ is written as the
