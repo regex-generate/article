@@ -1,0 +1,46 @@
+\section{Improvements}
+\label{sec:improvements}
+
+\subsection{Segmented representation}
+\label{sec:segm-repr}
+
+Two operations on the LLO representation, \code{concatenate} and
+\code{star}, internally transform their inputs into segment
+sequences. Such a transformation forth an back seems wasteful, so we
+stipulate to perform the entire generation in terms of segment
+sequences. The transformation to a language only happens as the final
+step.
+
+As a second refinement, we try to address the productivity concern
+discussed in Section~\ref{sec:motivation-discussion}. The approach is
+to let finite segment sequences represent finite languages. Hence,
+\begin{lstlisting}
+  zero = []
+  one = [[T.empty]]
+  atom t = [[], [T.singleton t]]
+\end{lstlisting}
+
+We discuss the remaining issues with the code for concatenation.
+\begin{lstlisting}
+  concatenate lx ly = collect 0
+    where
+      collect n =
+        (foldr ILO.union [] $ map (combine n) [0 .. n]) : collect (n+1)
+      combine n i =
+        [T.append x y | x <- lx !!! i, y <- ly !!! (n - i)]
+\end{lstlisting}
+The code relies on a special indexing operation that returns an empty
+list if indexing occurs beyond the end of a segment list:
+\begin{lstlisting}
+(!!!) :: [[a]] -> Int -> [a]
+[]       !!! n = []
+(xs:xss) !!! 0 = xs
+(xs:xss) !!! n = xss !!! (n - 1)
+\end{lstlisting}
+But the concatenation of finite languages still yields a partial list.
+
+\clearpage{}
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: "main"
+%%% End:
