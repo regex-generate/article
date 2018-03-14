@@ -512,7 +512,7 @@ word $w$ with $|w| = n$ requires two words $u\in U$ and $v\in V$ such that $|u| 
 |v| = |w| = n$. Hence, it would be useful to have a representation
 that exposes the lengths of words.
 
-In abstract terms, we represent a language as a power series
+To obtain such a representation, we represent a language as a power series
 \begin{gather*}
   L = \sum_{n=0}^\infty L_nx^n
 \end{gather*}
@@ -530,7 +530,7 @@ series.\footnote{Not surprisingly, because this representation is
   & (U \odot V)_n &= U_n \cap V_n \\
   \label{eq:1}
   &\text{Product:}
-  & (U \cdot V)_n &= \sum_{i=0}^n U_i V_{n-i}
+  & (U \cdot V)_n &= \bigcup_{i=0}^n U_i V_{n-i}
 \end{align}
 
 At this point, we arrived at an actionable representation that we call
@@ -538,8 +538,9 @@ the \emph{segment representation}. By applying
 the usual spiel of representating a power series by its sequence of
 coefficients, the definition of product becomes executable.
 
-As a first step, we transform the LLO representation into the segment
-representation.
+As a first step, the function \code{segmentize} transforms the LLO
+representation into the segment representation. It splits the input
+into chunks that contain all words of the same length.
 \begin{lstlisting}
 segmentize :: Lang -> [Lang]
 segmentize = collect 0
@@ -554,7 +555,7 @@ splitWhile p xs@(x:xs')
   | p x = let (takes, drops) = splitWhile p xs' in (x:takes, drops)
   | otherwise = ([], xs)
 \end{lstlisting}
-As the input sequence is strictly increasing in the
+As the input sequence to \code{segmentize} is strictly increasing in the
 length-lexicographic ordering, the individual segments are strictly
 increasing, too.
 
@@ -575,38 +576,38 @@ concatenate lx ly = collect 0
 \end{figure}
 We arrive at the implementation of concatenation in Figure~\ref{fig:concatenate-with-segments}.
 The function \code{combine} implements the body of the sum
-in~\eqref{eq:1}. The output of \code{combine} is strictly increasing
+in Equation~\eqref{eq:1}. The output of \code{combine} is strictly increasing
 because \code{xsegs !! i} is strictly increasing and all words have the same length \code{i}.
 Each of them is prepended to the elements of the strictly increasing
 sequence \code{ysegs !! (n - i)}, so that the resulting sequence is
 strictly increasing.
 
-The function \code{collect} implements the summation in~\eqref{eq:1}
+The function \code{collect} implements the summation in Equation~\eqref{eq:1}
 by taking the union of all \code{combine n i} for \code{i} in \code{[0
 .. n]}. As this union has finitely many operands, the nested
 invocations of \code{union} do not get stuck.
 
 \subsubsection{Kleene closure}
 
-To compute the Kleene closure, we can apply the same ideas as for
-concatenation. The star operation is only defined on a \emph{proper}
+To compute the Kleene closure, the same ideas as for
+concatenation apply. The star operation is only defined on a \emph{proper}
 power series where $L_0 = \emptyset$ (so that the language does not
 contain the empty word $\varepsilon$). In this case $L^* =
-\sum_{n=0}^\infty L^n = L^0 + \sum_{n=1}^\infty L^n = \{\varepsilon\}
-+ L \cdot \sum_{n=0}^\infty L^n  =   \{\varepsilon\}
+\bigcup_{n=0}^\infty L^n = L^0 + \bigcup_{n=1}^\infty L^n = \{\varepsilon\}
++ L \cdot \bigcup_{n=0}^\infty L^n  =   \{\varepsilon\}
 + L \cdot L^*$. Surprisingly, this calculation can be turned into an
-effective algorithm. 
+effective algorithm for computing the coefficients of the power series. 
 \begin{align}
   \label{eq:2}
   &\text{Star:}
   & (U^*)_0 &= 1
-  & (U^*)_n &= (U \cdot U^*)_n = \sum_{i=1}^n U_i\cdot (U^*)_{n-i}
+  & (U^*)_n &= (U \cdot U^*)_n = \bigcup_{i=1}^n U_i\cdot (U^*)_{n-i}
 \end{align}
 The key observation is that Equation~\eqref{eq:2} is a proper
 inductive definition of the power series for $U^*$ if we assume that
-$\varepsilon \notin U$. By our assumption $U_0 = 0$ and the summation
-only touches $(U^*)_{n-1}$ down to $(U^*)_0$. Hence $(U^*)_n$ is well
-defined as it only relies on previously computed indexes!
+$\varepsilon \notin U$. By this assumption $U_0 = 0$ and the union
+only touches the coefficients $(U^*)_{n-1}$ down to $(U^*)_0$. Hence, $(U^*)_n$ is well
+defined as it only relies on $U$ and previously computed indexes!
 
 \begin{figure}[tp]
 \begin{lstlisting}
@@ -623,7 +624,7 @@ star lx = concat rsegs
   \caption{Kleene closure for LLO representation}
   \label{fig:star-with-segments}
 \end{figure}
-Hence, we arrive at the implementation of Kleene closure in Figure~\ref{fig:star-with-segments}.
+Figure~\ref{fig:star-with-segments} contains the resulting implementation of Kleene closure.
 After the discussion of concatenation, there is not much left to say
 as the \code{collect} and \code{combine} functions are almost
 identical. The key point is to see that this definition is well
@@ -641,22 +642,44 @@ complement sigma lx = difference (concat lsigmastar) lx
   \caption{Complementation for the LLO representation}
   \label{fig:llo-complement}
 \end{figure}
-There is not much left to say about the complement operation. The
-definition of the complement of language $U$ is $\Sigma^*\setminus
-U$. We have an implementation of set difference
-$\setminus$ via the \code{difference} operator in
-Figure~\ref{fig:merging-lists}.  If \code{lx} is the LLO
+The definition of the complement of language $U$ is $\Sigma^*\setminus
+U$.  The \code{difference} operator in Figure~\ref{fig:merging-lists}
+is an implementation of set difference $\setminus$ on LLO represented
+sets.  If \code{lx} is the LLO 
 representation of $U$, then \code{lx} is a suitable argument for
 \code{difference}.  Looking back at the definition of
 \code{lsigmastar} in Figure~\ref{fig:finite-regular-operators}, we see
-that it is already in LLO
+that its output is already in LLO
 representation. Figure~\ref{fig:llo-complement} just puts the two
 definitions together.
 
 \subsubsection{Discussion}
-What have we gained?
+What have we gained? We can generate LLO
+representations for all regular languages. We can compute
+concatenation and Kleene closure effectively by transforming the
+language into a power series and back.
 
-\clearpage{}
+However, there is a catch as the output of \code{segmentize} is always
+an infinite list. The advantange of this choice is the simplicity of
+the code: all index accesses into the lists \code{xsegs} and
+\code{ysegs} are defined. The disadvantage is
+that \code{concatenate} returns a partial list if both argument lists
+are finite.
+This situation arises in the following example:
+\begin{verbatim}
+λ> concatenate [""] [""]
+[""
+\end{verbatim}
+With these inputs, only \code{xsegs !! 0} and \code{ysegs !! 0} are
+non-empty, so that \code{collect n = [] ++ collect (n+1)} for
+\code{n>0}. Obviously, such a definition is not productive.
+
+A similar phenomenon arises with \code{star}, where \code{star []} and
+\code{star [""]} result in partial lists. All other input languages
+result in infinite languages, which are generated productively.
+
+The next section discusses ways to address these shortcomings.
+
 %%% Local Variables:
 %%% mode: latex
 %%% TeX-master: "main"
