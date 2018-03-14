@@ -37,7 +37,7 @@ type of individual characters is completely unrestricted.
 \begin{figure}[h]
   \centering
   \begin{subfigure}{0.44\linewidth}
-\begin{lstlisting}
+\begin{lstlisting}[basicstyle=\scriptsize\ttfamily]
 module type SEGMENT = sig
   type elt
   type t
@@ -62,7 +62,7 @@ end
     \label{code:sigs:segment}
   \end{subfigure}~
   \begin{subfigure}{0.57\linewidth}
-\begin{lstlisting}
+\begin{lstlisting}[basicstyle=\scriptsize\ttfamily]
 module type WORD = sig
   type char
   type t
@@ -74,7 +74,7 @@ end
 \end{lstlisting}
     \caption{Signature for words}
     \label{code:sigs:word}
-\begin{lstlisting}
+\begin{lstlisting}[basicstyle=\scriptsize\ttfamily]
 module Regenerate
     (Word : WORD)
     (Segment : Segments.S with type elt = Word.t)
