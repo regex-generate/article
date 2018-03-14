@@ -130,3 +130,5 @@ setup.log
 # emacs
 *~
 _region_.tex
+
+*.csv
