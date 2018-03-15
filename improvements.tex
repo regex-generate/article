@@ -6,30 +6,47 @@
 
 Two operations on the LLO representation, \code{concatenate} and
 \code{star}, internally transform their inputs into segment
-sequences. Such a transformation forth an back seems wasteful, so we
+sequences. Such a transformation forth and back seems wasteful, so we
 stipulate to perform the entire generation in terms of segment
 sequences. The transformation to a language only happens as the final
-step.
-
-As a second refinement, we try to address the productivity concern
-discussed in Section~\ref{sec:motivation-discussion}. The approach is
-to let finite segment sequences represent finite languages. Hence,
-\begin{lstlisting}
-  zero = []
-  one = [[T.empty]]
-  atom t = [[], [T.singleton t]]
+step. Thus, the operations in this subsection manipulate languages in
+terms of the following type:
+\begin{lstlisting}[numbers=false]
+type SegLang = [[T.Text]]
 \end{lstlisting}
 
+As a second refinement, we try to address the productivity concerns
+discussed in Section~\ref{sec:motivation-discussion}. The approach is
+to let finite segment sequences represent finite languages. Hence, the
+base cases for the interpretation of regular expression may be defined
+as in Figure~\ref{fig:base-cases-segmented}.
+\begin{figure}[tp]
+\begin{lstlisting}
+zero :: SegLang
+zero = []
+
+one :: SegLang
+one = [[T.empty]]
+
+atom :: Char -> SegLang
+atom t = [[], [T.singleton t]]
+\end{lstlisting}
+  \caption{Implementation of base cases for segmented language representation}
+  \label{fig:base-cases-segmented}
+\end{figure}
+The implementation of \code{union}, \code{intersect}, and
+\code{difference} (and hence \code{complement}) is an easy exercise and thus omitted.
 We discuss the remaining issues with the code for concatenation.
 \begin{lstlisting}
-  concatenate lx ly = collect 0
-    where
-      collect n =
-        (foldr ILO.union [] $ map (combine n) [0 .. n]) : collect (n+1)
-      combine n i =
-        [T.append x y | x <- lx !!! i, y <- ly !!! (n - i)]
+concatenate' :: SegLang -> SegLang -> SegLang
+concatenate' lx ly = collect 0
+  where
+    collect n =
+      (foldr ILO.union [] $ map (combine n) [0 .. n]) : collect (n+1)
+    combine n i =
+      [T.append x y | x <- lx !!! i, y <- ly !!! (n - i)]
 \end{lstlisting}
-The code relies on a special indexing operation that returns an empty
+It relies on a special indexing operation into a list of lists that returns an empty
 list if indexing occurs beyond the end of a segment list:
 \begin{lstlisting}
 (!!!) :: [[a]] -> Int -> [a]
@@ -37,7 +54,55 @@ list if indexing occurs beyond the end of a segment list:
 (xs:xss) !!! 0 = xs
 (xs:xss) !!! n = xss !!! (n - 1)
 \end{lstlisting}
-But the concatenation of finite languages still yields a partial list.
+This change makes \code{concatenate'} amenable to work with finite
+segment lists, 
+but any concatenation of languages yields an infinite list of
+segments. To avoid that we need a termination criterion for
+\code{collect} to determine whether any future call can make a
+non-empty contribution.
+
+To this end, we extend the code to keep track of the highest index
+seen in \code{lx} and \code{ly}, say, $m_x$ and $m_y$. These indexes
+are upper bounds for the length of the longest word in \code{lx} and
+\code{ly}, respectively. Hence, if $n > m_x + m_y$, then no word of
+length $n$ can be constructed by concatenation of elements from
+\code{lx} and
+\code{ly}. Figure~\ref{fig:finite-concatenation-segmented} contains
+the corresponding extension of \code{concatenate}.
+\begin{figure}[tp]
+\begin{lstlisting}
+concatenate lx ly =
+  collect lx ly Nothing Nothing 0
+  where
+    collect xss yss mmx mmy n =
+      let (xss', mmx') = updateMax xss mmx n
+          (yss', mmy') = updateMax yss mmy n
+          mbound = liftA2 (+) mmx mmy
+      in
+        case mbound of
+          Just m | n > m ->
+                   []
+          _ ->
+            (foldr ILO.union [] $ map (combine n) [0 .. n]) :
+            collect xss' yss' mmx' mmy' (n+1)
+    combine n i =
+      [T.append x y | x <- lx !!! i, y <- ly !!! (n - i)]
+    updateMax _ mm@(Just _) n = ([], mm)
+    updateMax [] Nothing n = ([], Just n)
+    updateMax (_:xss) Nothing n = (xss, Nothing)
+\end{lstlisting}
+  \caption{Finiteness preserving implementation of concatenation}
+  \label{fig:finite-concatenation-segmented}
+\end{figure}
+
+The finite cases for \code{star} ($U^* = \{\varepsilon\}$ iff
+$U\subseteq\{\varepsilon\}$) are straightforward to detect.
+
+\subsection{Intermediate Assessment}
+\label{sec:interm-assessm}
+
+
+
 
 \clearpage{}
 %%% Local Variables:
