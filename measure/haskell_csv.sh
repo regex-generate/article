@@ -6,7 +6,7 @@ set -f #Disable globing
 
 
 ReBase=('a*' '(ab*)*' '~(a*)b')
-ReMore=('a*' 'a*b' '(ab*)*' '~(a*)b' '((a|b)(a|b))*' '(1(01*0)*1|0)*')
+ReMore=('a*' 'a*b' 'ba*' '(ab*)*' '~(a*)b' '((a|b)(a|b))*' '(1(01*0)*1|0)*')
 
 BackendBase=("naive" "ref")
 BackendMore=("seg")
@@ -34,11 +34,9 @@ function go {
 }
     
 go BackendBase ReBase
+go BackendMore ReMore
 
 echo "Gnuploting to haskell_all.png!"
 gnuplot haskell_all.gnuplot
-
-go BackendMore ReMore
-
 echo "Gnuploting to haskell_langs.png!"
 gnuplot haskell_langs.gnuplot
