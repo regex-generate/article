@@ -251,6 +251,23 @@ let rec memoize f =
       l
 \end{lstlisting}
 
+\subsubsection{Lazy lists}
+
+\ocaml also supports regular lazy lists using the builtin \code{lazy} keyword:
+
+\begin{lstlisting}
+type 'a node =
+  | Nil
+  | Cons of 'a * 'a lazylist
+type 'a lazylist = 'a node Lazy.t
+\end{lstlisting}
+
+We hence implemented the \code{LazyList} functor which is identical to the
+\code{ThunkList} but uses lazy lists. The only difference is that
+\code{memoize} is now the identity.
+
+
+
 
 
 %%% Local Variables:
