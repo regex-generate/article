@@ -38,6 +38,6 @@ set style line 6 lt 1 lc rgb "#e6ab02" lw 2 pt 7 ps 1.5 dt ". "
 set style line 7 lt 1 lc rgb "#a6761d" lw 2 pt 7 ps 1.5 dt "-"
 
 re = 'a* a*b ba* (ab*)* ~(a*)b ((a|b)(a|b))* (1(01*0)*1|0)*'
-algo = "seg"
+algo = "segConv"
 
 plot for [i = 1:words(re)] word(re,i)."_".algo."_haskell.csv" using 2:($1/10000) title word(re,i) noenhanced with lines ls i

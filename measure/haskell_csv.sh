@@ -8,8 +8,8 @@ set -f #Disable globing
 ReBase=('a*' '(ab*)*' '~(a*)b')
 ReMore=('a*' 'a*b' 'ba*' '(ab*)*' '~(a*)b' '((a|b)(a|b))*' '(1(01*0)*1|0)*')
 
-BackendBase=("naive" "ref")
-BackendMore=("seg")
+BackendBase=("naive" "ref" "seg")
+BackendMore=("segConv")
 
 function genH {
     file="$2_$1_haskell.csv"
