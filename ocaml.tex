@@ -22,6 +22,72 @@ This way, we can easily test numerous representation without changing
 our code. This also gave us the opportunity to find the ``minimal'' operations
 needed to implement our algorithm, which we now describe.
 
+\begin{figure}[b]
+  \centering
+  \begin{subfigure}{0.44\linewidth}
+\begin{lstlisting}[basicstyle=\scriptsize\ttfamily]
+module type SEGMENT = sig
+  type elt (** Elements *)
+  type t (** Segments *)
+
+  val empty : t
+  val is_empty : t -> bool
+  val return : elt -> t
+
+  (** Set operations *)
+  val union : t -> t -> t
+  val inter : t -> t -> t
+  val diff : t -> t -> t
+
+  (** Product and append elements *)
+  val append: t -> t -> t
+
+  (** n-way merge *)
+  val merge : t list -> t
+
+  (** Import a list *)
+  val of_list : elt list -> t
+
+  (** Export elements *)
+  val iter : t -> (elt -> unit) -> unit
+
+  (** For transient data-structures *)
+  val memoize : t -> t
+end
+\end{lstlisting}
+    \caption{Necessary operation on segments}
+    \label{code:sigs:segment}
+  \end{subfigure}~
+  \begin{subfigure}{0.57\linewidth}
+\begin{lstlisting}[basicstyle=\scriptsize\ttfamily]
+module type WORD = sig
+  type char
+  type t
+  val empty : t
+  val singleton : char -> t
+  val append : t -> t -> t
+end
+\end{lstlisting}
+    \caption{Necessary operation on words}
+    \label{code:sigs:word}
+\begin{lstlisting}[basicstyle=\scriptsize\ttfamily]
+module Regenerate
+    (Word : WORD)
+    (Segment : Segments.S with type elt = Word.t)
+: sig
+  type lang = Segment.t stream
+  val gen : 
+    sigma:Segment.t -> C.t regex -> lang
+  val iter : lang -> (Word.t -> unit) -> unit
+end
+\end{lstlisting}
+    \caption{Language generation as a functor}
+    \label{code:sigs:regen}
+  \end{subfigure}
+  \caption{Signatures of the language generator}
+  \label{code:sigs}
+\end{figure}
+
 \paragraph{Character and Words}
 
 The signature for words in shown in \autoref{code:sigs:word}.
@@ -61,72 +127,6 @@ a \code{memoize} function that will avoid recomputing segments accessed multiple
 %
 Finally, we also need ways to import and export the elements of a segment, using \code{of_list} and \code{iter}.
 
-\begin{figure}[h]
-  \centering
-  \begin{subfigure}{0.44\linewidth}
-\begin{lstlisting}[basicstyle=\scriptsize\ttfamily]
-module type SEGMENT = sig
-  type elt (** Elements *)
-  type t (** Segments *)
-
-  val empty : t
-  val is_empty : t -> bool
-  val return : elt -> t
-
-  (** Set operations *)
-  val union : t -> t -> t
-  val inter : t -> t -> t
-  val diff : t -> t -> t
-
-  (** Product and append elements *)
-  val append: t -> t -> t
-
-  (** n-way merge *)
-  val merge : t list -> t
-
-  (** Import a list *)
-  val of_list : elt list -> t
-
-  (** Export elements *)
-  val iter : t -> (elt -> unit) -> unit
-
-  (** For transient data-structure *)
-  val memoize : t -> t
-end
-\end{lstlisting}
-    \caption{Necessary operation on segments}
-    \label{code:sigs:segment}
-  \end{subfigure}~
-  \begin{subfigure}{0.57\linewidth}
-\begin{lstlisting}[basicstyle=\scriptsize\ttfamily]
-module type WORD = sig
-  type char
-  type t
-  val empty : t
-  val singleton : char -> t
-  val append : t -> t -> t
-end
-\end{lstlisting}
-    \caption{Necessary operation on words}
-    \label{code:sigs:word}
-\begin{lstlisting}[basicstyle=\scriptsize\ttfamily]
-module Regenerate
-    (Word : WORD)
-    (Segment : Segments.S with type elt = Word.t)
-: sig
-  type lang = Segment.t stream
-  val gen : 
-    sigma:Segment.t -> C.t regex -> lang
-  val iter : lang -> (Word.t -> unit) -> unit
-end
-\end{lstlisting}
-    \caption{Language generation as a functor}
-    \label{code:sigs:regen}
-  \end{subfigure}
-  \caption{Signatures of the language generator}
-  \label{code:sigs}
-\end{figure}
-
 \subsection{Core algorithm}
 
 The core algorithm is very similar to the Haskell version. The power series
@@ -157,11 +157,18 @@ let rec union s1 s2 () = match s1(), s2() with
   | Cons (x1, next1), Cons (x2, next2) -> 
     Cons (Segment.union x1 x2, union next1 next2)
 \end{lstlisting}
+Note the presence of unit arguments, \code{()}, which allow to control the
+evaluation of the stream. With this definition, \code{union s1 s2} will not lead
+to any evaluation until \code{()} is provided. This ensures that the stream is
+properly lazy.
 
 The concatenation of languages demonstrate how the main algorithm can
-be expressed very simply once the segment operation have been abstracted:.
+be expressed once the segment operation have been abstracted:.
 In order to build $U \cdot V$, we first build the $n$th term
-$(U \cdot V)_n = \bigcup_{i=0}^n U_i V_{n-i}$:
+$(U \cdot V)_n = \bigcup_{i=0}^n U_i V_{n-i}$.
+We use both \code{Segment.append} to implement the product
+of segment and the concatenation of words, and \code{Segment.merge} to merge
+all the resulting subterms.
 \begin{lstlisting}
 let term_of_length map1 map2 n =
   let combine_segments i =
@@ -170,11 +177,8 @@ let term_of_length map1 map2 n =
   List.(range 0 n) |> List.map combine_segments |> Segment.merge
 \end{lstlisting}
 
-We use both \code{Segment.append} to implement the product
-of segment and the concatenation of words, and \code{Segment.merge} to merge
-all the resulting subterms.
-
-We collect then all the terms:
+We then collect all the terms by synchronized recursion over the power series $U$
+and $V$:
 \begin{lstlisting}
 let rec collect n map1 map2 seq1 seq2 () = match seq1 (), seq2 () with
   | Cons (segm1, seq1), Cons (segm2, seq2) ->
@@ -190,9 +194,63 @@ The use of functional maps here is sufficient: the size of map is equal
 to the maximum word length, which should not be excessively big.
 
 Finally, we initialize \code{collect} with empty maps.
-\begin{lstlisting}
+\begin{lstlisting}[numbers=none]
 let concatenate = collect 0 IntMap.empty IntMap.empty
 \end{lstlisting}
+
+\subsection{Data structure}
+
+We have implemented our language generator parameterized by segments, we can now
+experiment various data-structures for segments. We present various
+potential implementation before comparing their performances.
+
+\subsubsection{Sorted streams}
+
+The \haskell implementation presented in \autoref{sec:ordered-enumeration}
+represent segments as ordered enumerations. We can use
+the same representation in \ocaml thanks to the \code{stream} datatype.
+\begin{lstlisting}[numbers=none]
+type t = elt stream
+\end{lstlisting}
+
+Since we use an order, we require a comparison function on elements.
+We also need an \code{append} functions on word. We summarize these requirement
+with the \code{OrderedMonoid} signature.
+We can the define the \code{ThunkList} functor shown in \autoref{code:thunklist}.
+We omit most of the function, as they can trivially implemented in a way
+
+\begin{figure}
+  \centering
+\begin{lstlisting}
+module type OrderedMonoid = sig
+  type t
+  val compare : t -> t -> int
+  val append : t -> t -> t
+end
+module ThunkList (Elt : OrderedMonoid) : SEGMENTS with type elt = Elt.t
+\end{lstlisting}
+  \caption{Signature for \texttt{ThunkList}}
+  \label{code:thunklist}
+\end{figure}
+
+We do not detail the complete implementation as most of the operations are trivially implemented. The main novel operation is the \code{memoize} function.
+In order to avoid recomputing the thunk each time the stream is iterated on,
+we create a reference initialize with \code{None} and later fill it with the
+node.
+\begin{lstlisting}
+let rec memoize f =
+  let r = ref None in
+  fun () -> match !r with
+    | Some l -> l
+    | None ->
+      let l = match f() with
+        | Nil -> Nil
+        | Cons (x, tail) -> Cons (x, memoize tail)
+      in
+      r := Some l;
+      l
+\end{lstlisting}
+
 
 
 %%% Local Variables:
