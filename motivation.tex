@@ -78,7 +78,7 @@ words for testing.
 
 \begin{figure}[tp]
   \begin{align*}
-    r, s & &L(\_)=\quad &  &
+    r, s & &\Lang{\_}=\quad &  &
                              \makebox[1em][l]{\code{data GRE sig}}\\
          & ::= \Rnull & \ltext{empty}
                         & \emptyset
@@ -90,31 +90,21 @@ words for testing.
                         &  \{ a \}
                            && \code{| Atom sig} \\
          & \mid \Runion rs & \ltext{alternative}
-                        &  L (r) \cup L (s)
+                        &  \Lang{r} \cup \Lang{s}
                            && \code{| Or (GRE sig) (GRE sig)}\\
          & \mid \Rconcat rs & \ltext{concatenation}
-                        &  L (r) \cdot L (s)
+                        &  \Lang r \cdot \Lang s
                            && \code{| Dot (GRE sig) (GRE sig)}\\
          & \mid \Rstar r & \ltext{Kleene star}
-                        & (L (r))^* 
+                        & \Lang r^* 
                            && \code{| Star (GRE sig)}\\
          & \mid \Rintersect rs & \ltext{intersection}
-                        & L (r) \cap L (s)
+                        & \Lang r \cap \Lang s
                            && \code{| And (GRE sig) (GRE sig)}\\
          & \mid \Rcomplement r & \ltext{complement}
-                        & \Sigma^* \setminus L (r)
+                        & \Sigma^* \setminus \Lang r
                            && \code{| Not (GRE sig)}
   \end{align*}
-  % \begin{align*}
-  %   L (\Rnull) &= \emptyset\\
-  %   L (\Rempty) &= \{ \varepsilon \} \\
-  %   L (a) &= \{ a \} \\
-  %   L (\Runion rs) &= L (r) \cup L (s) \\
-  %   L (\Rconcat rs) &= L (r) \cdot L (s) \\
-  %   L (\Rstar r) &= (L (r))^* \\
-  %   L (\Rintersect rs) &= L (r) \cap L (s) \\
-  %   L (\Rcomplement r) &= \Sigma^* \setminus L (r)
-  % \end{align*}
   \caption{Generalized regular expressions}
   \label{fig:generalized-regular-expressions}
 \end{figure}
@@ -125,7 +115,7 @@ where $\Sigma^0 = \{\varepsilon\}$ and $\Sigma^{i+1} = \Sigma \times
 \Sigma^i$.\footnote{Equivalently define $\Sigma^*$
 inductively as the smallest set such that $\varepsilon \in
 \Sigma^*$ and $\forall a\in\Sigma, \forall w\in\Sigma^*, aw \in \Sigma^*$}
-The semantics of an expression, $L(r) \subseteq \Sigma^*$, is a set of
+The semantics of an expression, $\Lang r \subseteq \Sigma^*$, is a set of
 words, which is also defined in
 Figure~\ref{fig:generalized-regular-expressions}. It relies on
 standard definitions from the theory of formal languages. We write
