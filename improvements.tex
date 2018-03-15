@@ -36,7 +36,9 @@ atom t = [[], [T.singleton t]]
 \end{figure}
 The implementation of \code{union}, \code{intersect}, and
 \code{difference} (and hence \code{complement}) is an easy exercise and thus omitted.
-We discuss the remaining issues with the code for concatenation.
+We discuss the remaining issues with the code for concatenation in
+Figure~\ref{fig:preliminary-concatenation-segmented}. 
+\begin{figure}[tp]
 \begin{lstlisting}
 concatenate' :: SegLang -> SegLang -> SegLang
 concatenate' lx ly = collect 0
@@ -46,6 +48,10 @@ concatenate' lx ly = collect 0
     combine n i =
       [T.append x y | x <- lx !!! i, y <- ly !!! (n - i)]
 \end{lstlisting}
+  \caption{Preliminary implementation of concatenation for segmented
+    language representation}
+  \label{fig:preliminary-concatenation-segmented}
+\end{figure}
 It relies on a special indexing operation into a list of lists that returns an empty
 list if indexing occurs beyond the end of a segment list:
 \begin{lstlisting}
@@ -61,14 +67,23 @@ segments. To avoid that we need a termination criterion for
 \code{collect} to determine whether any future call can make a
 non-empty contribution.
 
-To this end, we extend the code to keep track of the highest index
-seen in \code{lx} and \code{ly}, say, $m_x$ and $m_y$. These indexes
+To this end, we extend the code to keep track of the lowest index
+seen in \code{lx} and \code{ly} where the respective segment list is
+exhausted, say, $m_x$ and $m_y$ (if they exist). These indexes
 are upper bounds for the length of the longest word in \code{lx} and
-\code{ly}, respectively. Hence, if $n > m_x + m_y$, then no word of
+\code{ly} such that $\forall x \in \code{lx}$ it must be that
+$|x|\le m_x-1$ and analogously for \code{ly}. Hence, the longest word in
+the product is bounded by $|xy| = |x| + |y| \le m_x -1 + m_y -1$. In
+consequence, if $n \ge m_x + m_y - 1$, then no word of
 length $n$ can be constructed by concatenation of elements from
 \code{lx} and
 \code{ly}. Figure~\ref{fig:finite-concatenation-segmented} contains
-the corresponding extension of \code{concatenate}.
+the corresponding extension of \code{concatenate}. It makes use of
+\code{liftA2} used at type \code{(Int -> Int -> Int) -> Maybe Int ->
+  Maybe Int -> Maybe Int} to add two values of type \code{Maybe
+  Int} if they are present.\footnote{The function \code{liftA2 ::
+    Applicative f => (a -> b -> c) -> f a -> f b -> f c} is taken from
+the standard module \code{Control.Applicative}.}
 \begin{figure}[tp]
 \begin{lstlisting}
 concatenate lx ly =
@@ -96,11 +111,93 @@ concatenate lx ly =
 \end{figure}
 
 The finite cases for \code{star} ($U^* = \{\varepsilon\}$ iff
-$U\subseteq\{\varepsilon\}$) are straightforward to detect.
+$U\subseteq\{\varepsilon\}$) are straightforward to detect and thus not further discussed.
 
-\subsection{Intermediate Assessment}
+\subsection{Assessment}
 \label{sec:interm-assessm}
 
+The segmented representation has a number of features that makes it
+well suited for use in practice. We discuss these features in turn and
+consider further minor improvements in the subsections to follow.
+
+\subsubsection{Productivity}
+Each generalized regular expression is interpreted by a productive
+(finite or infinite) stream of segments. Each segment is guaranteed to
+be a total, finite list of words. There is no partiality in this representation.
+
+\subsubsection{Easy Bounding}
+To restrict the generated segmented output \code{segs} to words of length less than a given
+bound \code{n}, all we need to do is \code{take n segs}. The result is
+a finite list of words. In contract, such filtering is not effective
+for the LLO representation where \code{takeWhile (\w -> T.length w <
+  n) llo} may generate a partial list.
+
+\subsubsection{Finite Languages}
+Segmentation yields a finite representation for all finite languages
+defined without using the \code{complement} operation. While
+$\Lang{\Rcomplement{(\Rcomplement{\Rnull})}} = \emptyset$ is a finite 
+language, the output of \code{complement (complement zero)} is an
+infinite list of empty segments.
+
+In Section~\ref{sec:more-finite-repr}, we discuss ways to get finite
+representations from more languages, but in general it is
+not possible to guarantee that a finite language is represented by a
+finite stream of segments.
+
+\subsection{Faster Concatenation}
+\label{sec:faster-concatenation}
+
+Looking back at the code in
+Figure~\ref{fig:preliminary-concatenation-segmented}, we see that the
+invocation of \code{collect n} leads to $n$ invocations of the list
+indexing operations \code{lx !!! i} and \code{ly !!! (n - i)}, which
+results in an  overall complexity of $O (n^2)$.\footnote{We assume that
+GHC is sufficiently clever to pull \code{ly !!! (n - i)} out of the loop.}
+
+There are a number of different ways to reduce this complexity.
+
+\subsubsection{Convolution}
+\begin{figure}[tp]
+\begin{lstlisting}
+concatenate'' :: SegLang -> SegLang -> SegLang
+concatenate'' lx ly = collect ly []
+  where
+    collect (ysegn:ysegs) rly =
+      let rly' = ysegn : rly in
+      (foldr ILO.union [] $ zipWith (liftA2 T.append) lx rly') :
+      collect ysegs rly'
+\end{lstlisting}
+  \caption{Concatenation with convolution}
+  \label{fig:concatenation-with-convolution}
+\end{figure}
+The \code{combine} operation is an example of a convolution where
+indexing proceeds in opposite directions. The \code{collect} operation
+could take advantage of it and build a reversed list \code{rly} of already
+processed segments of \code{ly}. With this extra data structure, the
+iteration of \code{combine} can be implemented by a linear time
+\code{zipWith} as shown in Figure~\ref{fig:concatenation-with-convolution}.
+
+For simplicity, the code in the figure only handles infinite lists of
+segments. But when extended with handling the case for finite lists,
+it gives rise to a very nice optimization. If \code{lx} is finite,
+then the \code{zipWith} automatically stops unnecessary indexes in
+\code{ly}. Conversely, if \code{ly} starts with some empty segments
+because all its words are longer than some lower bound, then these
+segments safely could be omitted from \code{rly}.
+
+This consideration reveals that the implementation
+\code{concatenate''} is is inherently asymmetric because it does not
+exploit the finiteness of \code{ly}. 
+
+\subsubsection{Map data structure}
+
+\subsubsection{Sparse indexing}
+
+
+
+
+\subsection{More Finite Representations}
+\label{sec:more-finite-repr}
 
 
 
