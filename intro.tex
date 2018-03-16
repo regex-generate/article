@@ -1,5 +1,27 @@
 \section{Introduction}
 
+Regular languages are everywhere. Due to their apparent simplicity and
+their concise representability in the form of regular expressions,
+regular languages are used for many text processing
+applications, reaching from text editors
+\cite{DBLP:journals/cacm/Thompson68} to extracting data from web
+pages.
+
+Consequently, there a many algorithms and libraries that implement
+parsing for regular expressions. Some of them are based on Thompson's
+translation from regular expressions to nondeterministic finite
+automata and then apply the powerset construction to obtain a
+deterministic automaton. Others are based on Brzozowski's derivatives
+\cite{Brzozowski1964} and
+maps a regular expression directly to a deterministic
+automaton. Antimirov's partial derivatives \cite{Antimirov96Partial}
+yield another transformation into a nondeterministic automaton.
+Yet others execute and memoize nondeterministic automata 
+
+\begin{itemize}
+\item Efficient testing and matching of deterministic regular
+  expressions \cite{DBLP:journals/jcss/GrozM17}
+\end{itemize}
 \TODO{}
 
 The implementation will be available on Github and will be submitted for artifact evaluation. 

@@ -1,7 +1,56 @@
 \section{Related Work}
 \label{sec:related-work}
 
+\subsubsection*{Regular Language Generation}
+\citet{DBLP:journals/jfp/McIlroy04} implements the enumeration of
+strings of regular languages in Haskell. He develops two approaches,
+one based on interpreting regular expressions, the other using an
+intermediate representation as a nondeterministic finite
+automaton. The approach is inspired by an earlier note by Misra
+\cite{misra11:_enumer_strin_regul_expres} and uses operators based on
+an increasing list representation similar to our first proposal.
+
+However, the approach does not consider the complement operation and
+none of the presented representations can readily deal with
+it. Moreover, the generation method is reported to be very inefficient
+and thus not suitable for generating test inputs at a large scale.
+
+\citet{DBLP:conf/wia/LeeS04} discuss enumerating regular expressions
+and their languages. Despite the title, this work is unrelated
+because it aims to find bounds on the number of languages that can be
+represented with regular expressions and automata of a certain size.
+
+
+\subsubsection*{Language Generation}
+Some authors discuss the generation of test sentences from grammars for
+exercising compilers
+(e.g., \cite{DBLP:conf/cisse/ParachaF08,DBLP:conf/compsac/ZhengW09}
+for some recent work). This
+line of work goes back to Purdom's sentence generator for testing
+parsers \cite{purdom72:_senten_gener_testin_parser}, which creates
+sentences from a context-free grammar using each production at least
+once.
+
+Compared to our generator, the previous work starts from context-free
+languages and aims at testing the apparatus behind the parser,
+rather than the parser itself. Hence, it focuses on generating
+positive examples, whereas we are also interested in counterexamples.
+
+Grammar Testing~\cite{DBLP:conf/fase/Lammel01} aims to
+identify and correct errors in a grammar by exercising it on example
+sentences. The purpose is to recover ``lost'' grammars of programming
+languages effectively.
+Other work \cite{DBLP:conf/compsac/LiJLG04} also targets
+testing the grammar, rather than the parser.
+
 \subsubsection*{Test Data Generation}
+
+QuickCheck, Smallcheck
+Robby Findler
+
+\subsubsection*{Testing Program Generators}
+
+\subsubsection*{Fuzzing}
 
 
 
