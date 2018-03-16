@@ -57,7 +57,7 @@ when arriving at a new segment, part of the work is done eagerly which causes
 a plateau. When that part is done, the enumeration proceeds lazily.
 Since laziness and GHC-optimizations are hard to control in a manual fashion,
 we did not attempt to correct this.
-\item $\Rconcat{\Rcomplement{(\Rstar{a})}}{b}$ demonstrates that sparse indexing
+\item $\Rstar{(\Rconcat{a}{\Rstar{b}})}$ demonstrates that sparse indexing
   does degrade performances when applying \code{star} to non-sparse languages.
   The performance impact is however recovered using the convolution technique
   presented in \cref{sec:convolution}.
