@@ -39,7 +39,7 @@ set style line 2 lt 1 lc rgb "#d95f02" lw 2 pt 11 ps 1.5 dt "-"
 set style line 3 lt 1 lc rgb "#7570b3" lw 2 pt 9 ps 1.5 dt ". "
 
 re = 'a* (ab*)* ~(a*)b'
-algo = "naive ref seg segConv"
+algo = "naive ref refConv seg segConv"
 
 
 do for [i = 1:words(re)] {
