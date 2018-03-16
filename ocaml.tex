@@ -226,9 +226,8 @@ To use an order, we need a comparison and an
 \code{append} function on words.  The \code{OrderedMonoid} signature
 captures these requirements. \autoref{code:thunklist} shows the
 resulting functor \code{ThunkList}.
-We omit the straightforward implementation.
 
-\begin{figure}
+\begin{figure}[hbt]
   \centering
 \begin{lstlisting}
 module type OrderedMonoid = sig
@@ -242,7 +241,7 @@ module ThunkList (Elt : OrderedMonoid) : SEGMENTS with type elt = Elt.t
   \label{code:thunklist}
 \end{figure}
 
-The rest of the implementation is not difficult, either. For example, here is the
+Most of the implementation is straightforward. For example, here is the
 \code{append} function, where \code{>>=} is bind (or \code{concatMap})
 and \code{>|=} is map.
 
@@ -324,14 +323,14 @@ expect a set implementation to perform well. We implemented segments as sets
 of words using \ocaml's built-in \code{Set} module. \ocaml sets are implemented
 using binary trees with an imbalance of at most one.
 The only operations not implemented by \ocaml's standard library are
-the n-way merge and the product, but they are easy to implement with
-standard functions such as fold and union.
+the n-way merge and the product, which can be implemented using folds and unions.
 
 \subsubsection{Tries}
 
 Tries are prefix trees where each branch is labeled with
 a character. A word is considered to belong to the trie if it is possible to
-follow its character and reach a value. Tries seem quite amenable to our problem:
+follow its character through branches of the tries and reach a value. 
+Tries seem well adapted to our problem:
 \begin{itemize}
 \item All words in a segment are of the same length. Thus, they are never prefixes
   of one another and we can use tries where values are only
