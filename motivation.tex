@@ -434,11 +434,12 @@ two languages $U, V \subseteq \Sigma^*$ in LLO representation,
 produce the LLO representation of $U \cdot V =  \{ u\cdot v \mid u\in
 U, v\in V\}$. If we compute the product naively as in
 Figure~\ref{fig:regular-operators-0}, then the output is not in LLO
-form:\footnote{The example uses \code{String} for simplicity.}
+form:\footnote{The example relies on the operator
+  \lstinline{Data.Monoid.<>} to append strings in any representation.}  
 \begin{verbatim}
 λ> let lu = ["a", "ab"]
 λ> let lv = ["", "b", "bb"]
-λ> [ u++v | u <- lu, v <- lv ]
+λ> [ u<>v | u <- lu, v <- lv ]
 ["a","ab","abb","ab","abb","abbb"]
 \end{verbatim}
 In fact, the output violates both constraints: it is not increasing
@@ -446,7 +447,7 @@ and it has duplicates.
 
 Perhaps the following observation helps: for each $u\in U$, the LLO
 representation of the language $u\cdot V$ can be trivially produced
-because the list \code{[ u++v | v <- lv ]} is strictly
+because the list \lstinline{[ u<>v |  v <- lv ]} is strictly
 increasing. This observation motivates the following definition of
 language concatenation (using \code{union} from Figure~\ref{fig:merging-lists}).
 \begin{lstlisting}
@@ -525,7 +526,7 @@ series.\footnote{Not surprisingly, because this representation is
 
 At this point, we arrived at an actionable representation that we call
 the \emph{segment representation}. By applying
-the usual spiel of representating a power series by its sequence of
+the usual spiel of representing a power series by its sequence of
 coefficients, the definition of product becomes executable.
 
 As a first step, the function \code{segmentize} transforms the LLO
