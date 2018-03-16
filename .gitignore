@@ -132,3 +132,6 @@ setup.log
 _region_.tex
 
 *.csv
+
+# MacOS
+.DS_Store
