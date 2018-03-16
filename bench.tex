@@ -7,6 +7,13 @@ implementation presented in \cref{sec:motivation} and \cref{sec:improvements}.
 We then compare different data-structure implementation for segments
 using the \ocaml implementation detailed in \cref{sec:ocaml}.
 
+All benchmarks were done on a ThinkPad T470 with an i5-7200U CPU and 12Go of memory.
+The \haskell benchmarks uses the lts-10.8 platform and the \texttt{-02} option.
+The OCaml benchmark uses \ocaml 4.06.1 with the flambda optimizer and the
+\texttt{-03} option. Additionally, we annotated all our functors
+with the \code{[@inline]} annotation which ensures that functors are applied at
+compile-time and their content benefits from available optimizations.
+
 \subsection{Comparing algorithms in the \haskell implementation}
 
 \cref{sec:motivation} and \cref{sec:improvements} present successive
@@ -66,46 +73,98 @@ we did not attempt to correct this.
 
 \begin{figure}[h]
   \centering
-  \includegraphics[width=\linewidth]{measure/haskell_all.png}
+  \includegraphics[height=0.33\linewidth]{measure/haskell_all.png}
   \caption{Benchmark for the \haskell implementation with various algorithms}
   \label{bench:haskell:all}
 \end{figure}
 
 \subsection{Comparing data-structures in the \ocaml implementation}
 
-We followed the same benchmarking methodology than for the \haskell
-version in \autoref{sec:bench}. Benchmark for various data-structures
-for regular expressions \verb/a*/, \verb/(ab*)*/ and \verb/~(a*)b/ are
-presented in \autoref{bench:ocaml:all}.
+We have now established that the refConv algorithm provides the best performances.
+The haskell implementation, however, only uses lazy lists. To measure
+the influence of strictness and data-structure on language generation,
+we turn to the functorized \ocaml implementation.
+We follow the same methodology than the \haskell evaluation,
+with the regular expressions
+$\Rstar a$, $\Rstar{(\Rconcat{a}{\Rstar{b}})}$ and
+$\Rconcat{\Rcomplement{(\Rstar{a})}}{b}$.
+The results are shown in \cref{bench:ocaml:all}.
 
-\begin{figure}[h]
+\begin{figure}[b]
   \centering
-  \includegraphics[width=\linewidth]{measure/ocaml_all.png}
+  \includegraphics[height=0.33\linewidth]{measure/ocaml_all.png}
   \caption{Benchmark for the \ocaml implementation with various data-structures}
   \label{bench:ocaml:all}
-\end{figure}
-
-\subsubsection{Union and set operations}
-
-\begin{figure}[h]
-  \centering
-  \includegraphics[width=\linewidth]{measure/ocaml_union.png}
+  \includegraphics[height=0.33\linewidth]{measure/ocaml_union.png}
   \caption{Benchmarking \texttt{union} in the \ocaml data-structures}
   \label{bench:ocaml:union}
 \end{figure}
 
+Unlike the previous benchmark for algorithms, there is no clearly winner
+among data-structures. The \code{ThunkList} and \code{LazyList} module seem to
+be superior to the alternatives, although the result are highly influenced by
+the regular expression considered:
+\begin{itemize}[leftmargin=*]
+\item The \code{Trie} module is very inefficient on $\Rstar a$. Unfortunately,
+  our implementation of tries doesn't do path compression but represent
+  each character by a branch. Since each segment only contain
+  one word, this degenerate to a list of character. We believe
+  an implementation of tries which compresses paths without branches
+  would perform as well as the other data-structures.
+\item The other data-structures on $\Rstar a$ exhibit a very pronounced slowdown
+  when reaching 150000 words.
+  We believe this is due to garbage collection: indeed
+  all data-structure were consuming up to 10Go of memory before
+  a collection was triggered. Memory consumption on the other regular
+  expressions was far less significant.
+\item Strict data-structure showcase a very marked ``skewed stair'' pattern.
+  This pattern is however completely absent for \code{ThunkList} and
+  \code{LazyList}. This demonstrates, if that was still needed,
+  that laziness does indeed work very well in \ocaml. These results also confirm
+  that strict data-structures should only be used when one wants to obtain
+  all the elements up to a given length, in which case the stair pattern
+  doesn't cause any penalty.
+\item Memoization significantly decreases performances. It seems
+  that the linear cost of memoizing the thunk list, along with
+  the extract allocations is higher than simple recomputing through smaller
+  lists.
+\end{itemize}
+
+While the regular expressions presented previously do exercise
+\code{concatenation} and \code{star}, they do not exercise set operations.
+In order to test set operations on non-trivial segments (segments that
+are neither full nor empty), we consider the language of words with at least
+one $a$ and one $b$. This language can be built in two ways:
+$\Runion{\Rcomplement{\Rstar{a}}}{\Rcomplement{\Rstar{b}}}$ and
+$\Rconcat{(\Runion{a\Rstar{a}b}{b\Rstar{b}a})}{\Rstar{\Sigma}}$.
+The first applies \code{union} to two large languages, the second takes
+the union of smaller languages, but uses a concatenation.
+The performances of the various data-structure on these two regular expressions
+is presented in \cref{bench:ocaml:union}.
+Lazy and thunk lists, with memoization or not, are very efficient on the union of languages but less so when concatenation is involved. Performance of strict sets and tries is surprisingly poor.
+
 \subsection{The influence of regular expressions on performances}
 
+As we have seen on the various benchmarks, the performance of the language
+generator highly depends on the precise structure of both
+the generated language and the regular expression considered.
+We attempt to explore this remark by comparing various regular expressions
+with the \code{refConv} \haskell implementation and the \code{ThunkList}
+\ocaml implementation in \cref{bench:langs}.
+
+\TODO{Detail this a bit more}
 
 \begin{figure}[h]
   \centering
-  \begin{subfigure}{0.5\linewidth}
-    \includegraphics[width=\linewidth]{measure/haskell_langs.png}
+  \begin{subfigure}[t]{0.45\linewidth}
+    \centering
+    \includegraphics[height=0.66\linewidth]{measure/haskell_langs.png}
     \caption{\haskell implementation with \code{segConv}}
     \label{bench:haskell:langs}
   \end{subfigure}~
-  \begin{subfigure}{0.5\linewidth}
-    \includegraphics[width=\linewidth]{measure/ocaml_langs.png}
+  \begin{subfigure}[t]{0.45\linewidth}
+    \centering
+    \includegraphics[height=0.66\linewidth]{measure/ocaml_langs.png}
     \caption{\ocaml implementation with \code{ThunkList}}
     \label{bench:ocaml:langs}
   \end{subfigure}
