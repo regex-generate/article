@@ -151,10 +151,11 @@ Looking back at the code in
 Figure~\ref{fig:preliminary-concatenation-segmented}, we see that the
 invocation of \code{collect n} leads to $n$ invocations of the list
 indexing operations \code{lx !!! i} and \code{ly !!! (n - i)}, which
-results in an  overall complexity of $O (n^2)$.\footnote{We assume that
+results in an  overall complexity of $O (n^2)$ for generating the
+segment $n$.\footnote{We assume that
 GHC is sufficiently clever to pull \code{ly !!! (n - i)} out of the loop.}
 
-There are a number of different ways to reduce this complexity.
+There are several different ways to reduce this complexity.
 
 \subsubsection{Convolution}
 \begin{figure}[tp]
@@ -171,27 +172,48 @@ concatenate'' lx ly = collect ly []
   \label{fig:concatenation-with-convolution}
 \end{figure}
 The \code{combine} operation is an example of a convolution where
-indexing proceeds in opposite directions. The \code{collect} operation
-could take advantage of it and build a reversed list \code{rly} of already
+indexing of the two lists proceeds in opposite directions. The \code{collect} operation
+could take advantage of this pattern and build a reversed list \code{rly} of already
 processed segments of \code{ly}. With this extra data structure, the
-iteration of \code{combine} can be implemented by a linear time
+convolution can be implemented in linear time using
 \code{zipWith} as shown in Figure~\ref{fig:concatenation-with-convolution}.
 
 For simplicity, the code in the figure only handles infinite lists of
 segments. But when extended with handling the case for finite lists,
 it gives rise to a very nice optimization. If \code{lx} is finite,
-then the \code{zipWith} automatically stops unnecessary indexes in
+then the \code{zipWith} automatically stops processing unnecessary indices in
 \code{ly}. Conversely, if \code{ly} starts with some empty segments
 because all its words are longer than some lower bound, then these
 segments safely could be omitted from \code{rly}.
 
-This consideration reveals that the implementation
-\code{concatenate''} is is inherently asymmetric because it does not
-exploit the finiteness of \code{ly}. 
+This consideration reveals that the algorithm implemented in
+\code{concatenate''} is inherently asymmetric because it does not
+exploit the finiteness of \code{ly}. However, this asymmetry can be
+addressed easily (in the finiteness-aware version).  The code can be
+enhanced to detect that \code{ly} is finite. Then it just flips the roles of
+\code{lx} and \code{ly}, so that from now on \code{ly} is traversed in 
+forward direction and \code{lx} backwards. Flipping roles at length $n$ requires taking
+the initial $(n+1)$ segments of \code{lx} and reversing the resulting
+list. The cost for this reversal is amortized by the previous traversal of
+\code{ly} up to this point, so it has no impact on the asymptotic complexity.
 
 \subsubsection{Map data structure}
+Alternatively, we could store the segments of \code{lx} and \code{ly}
+up to length \code{n} in a map data structure of type
+\code{Data.Map.Map Int [T.Text]}, which maps the number $i$ to the
+segment that contains the words of length $i$. This change would bring
+down the quadratic complexity to $O (n\log n)$. 
 
 \subsubsection{Sparse indexing}
+Along with the recursive calls of \code{collect}, we could accumulate
+a list/set of indexes for \code{lx} and \code{ly} such that the
+corresponding segments are non-empty. With this information, the
+\code{combine} operation could be targeted to only consider the useful
+indexes where both \code{lx !!! i} and \code{ly !!! (n - i)} are
+non-empty.
+
+The combination of using maps and spares indexing would give rise to a
+more symmetric behavior.
 
 
 
