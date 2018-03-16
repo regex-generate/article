@@ -174,7 +174,7 @@ let term_of_length map1 map2 n =
   let combine_segments i =
     Segment.append (IntMap.find i map1) (IntMap.find (n - i) map2)
   in
-  List.(range 0 n) |> List.map combine_segments |> Segment.merge
+  List.(range 0 n) |> List.rev_map combine_segments |> Segment.merge
 \end{lstlisting}
 
 We then collect all the terms by synchronized recursion over the power series $U$
@@ -204,7 +204,7 @@ We have implemented our language generator parameterized by segments, we can now
 experiment various data-structures for segments. We present various
 potential implementation before comparing their performances.
 
-\subsubsection{Sorted streams}
+\subsubsection{Ordered streams}
 
 The \haskell implementation presented in \autoref{sec:ordered-enumeration}
 represent segments as ordered enumerations. We can use
@@ -233,23 +233,66 @@ module ThunkList (Elt : OrderedMonoid) : SEGMENTS with type elt = Elt.t
   \label{code:thunklist}
 \end{figure}
 
-We do not detail the complete implementation as most of the operations are trivially implemented. The main novel operation is the \code{memoize} function.
-In order to avoid recomputing the thunk each time the stream is iterated on,
-we create a reference initialize with \code{None} and later fill it with the
-node.
+The rest of the implementation is straightforward. For example, here is the
+\code{append} function, where \code{>>=} is bind (or \code{concatMap})
+and \code{>|=} is map.
+
 \begin{lstlisting}
-let rec memoize f =
-  let r = ref None in
-  fun () -> match !r with
-    | Some l -> l
-    | None ->
-      let l = match f() with
-        | Nil -> Nil
-        | Cons (x, tail) -> Cons (x, memoize tail)
-      in
-      r := Some l;
-      l
+let append l1 l2 =
+  l1 >>= fun x -> l2 >|= fun y -> Elt.append x y
 \end{lstlisting}
+
+The n-way merge is implemented using a priority heap which hold pairs composed
+of the head of a stream and its tail. When a new element is required in the
+merged stream, we pop the top element of the heap, deconstruct
+the tail and insert it back in the heap.
+
+\begin{lstlisting}
+let merge l =
+  let cmp (v1,_) (v2,_) = K.compare v1 v2 in
+  let merge (x1, s1) (_, s2) = (x1, s1@s2) in
+  let push h s =
+    match s() with Nil -> h | Cons (x, s') -> Heap.insert h (x, [s'])
+  in
+  let h0 = List.fold_left push (Heap.empty ~cmp ~merge) l in
+  let rec next heap () =
+    if Heap.is_empty heap then Nil else begin
+      let (x, seq), heaps = Heap.pop heap in
+      let new_heap = List.fold_left push heaps seq in
+      Cons (x, next new_heap)
+    end
+  in
+  next h0
+\end{lstlisting}
+
+\subsubsection{Transience and Memoization}
+
+During concatenation and star, we iterate over segments multiple time.
+Unfortunately thunk lists are transient: iterating multiple time over the same list
+will compute it again. To offset this, we can implement memoization
+over thunk lists by pushing the elements in a growing vector as they are
+computed:
+\begin{lstlisting}
+let memoize f =
+  let r = CCVector.create () in
+  let rec f' i seq () =
+    if i < CCVector.length r
+    then CCVector.get r i
+    else 
+      let l = match seq() with
+        | Nil -> Nil
+        | Cons (x, tail) -> Cons (x, f' (i+1) tail)
+      in
+      CCVector.push r l;
+      l
+  in
+  f' 0 f
+\end{lstlisting}
+
+Such a memoization function incurs a linear cost on streams. To test
+if this operation is worthwhile we implemented two modules:
+\code{ThunkList} where memoization is the identity and \code{ThunkListMemo}
+with the implementation above.
 
 \subsubsection{Lazy lists}
 
@@ -263,11 +306,46 @@ type 'a lazylist = 'a node Lazy.t
 \end{lstlisting}
 
 We hence implemented the \code{LazyList} functor which is identical to the
-\code{ThunkList} but uses lazy lists. The only difference is that
-\code{memoize} is now the identity.
+\code{ThunkList} but uses lazy lists.
 
+\subsubsection{Strict sets}
 
+Since the main operation for segments are set operations, it is natural to
+expect sets to perform well. We implemented segments as sets
+of words using \ocaml builtin \code{Set} module. \ocaml sets are implemented
+using binary trees with an imbalance of at most one.
+The only operations not implemented by \ocaml's standard library are
+the n-way merge and the cartesian production which are easily implemented with
+standard functions such as fold and union.
 
+\subsubsection{Tries}
+
+Tries are prefix trees where each branch is labeled with
+a character. A word is considered to belong to the trie if it is possible to
+follow its character and reach a value. Our problem seem very suitable to tries:
+\begin{itemize}
+\item All words in a segment are of the same length and can thus never be prefixes
+  of each other. This mean that we can use tries where values are only
+  at the leaf.
+\item The \code{append} operation on tries can simply implemented by
+  grafting the second trie in all the leafs of the first one.
+\end{itemize}
+
+\TODO{}
+
+\subsection{Results}
+
+We followed the same benchmarking methodology than for the \haskell
+version in \autoref{sec:bench}. Benchmark for various data-structures
+for regular expressions \verb/a*/, \verb/(ab*)*/ and \verb/~(a*)b/ are
+presented in \autoref{fig:bench:ocaml:all}.
+
+\begin{figure}
+  \centering
+  \includegraphics[width=\linewidth]{measure/ocaml_all.png}
+  \caption{Benchmark for the \ocaml implementation with various data-structures.}
+  \label{fig:bench:ocaml:all}
+\end{figure}
 
 
 %%% Local Variables:
