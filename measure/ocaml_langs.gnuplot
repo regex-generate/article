@@ -3,7 +3,7 @@
 # set terminal x11 size 700,700 font 'Deja Vu Sans Mono,14' persist
 
 set terminal pngcairo transparent size 1000,700 rounded font 'Deja Vu Sans,15'
-set output 'haskell_langs.png'
+set output 'ocaml_langs.png'
 
 # set terminal tikz standalone size 15,6 textscale 0.5
 # set output 'tex/re-gen.tex'
@@ -23,7 +23,7 @@ set grid back ls 81
 set ylabel "Count (×10^4)"
 set xlabel "Time (s)"
 set xrange [0:5]
-set yrange [0:600]
+set yrange [0:]
 set logscale y
 
 # Put the legend at the bottom left of the plot
@@ -38,6 +38,6 @@ set style line 6 lt 1 lc rgb "#e6ab02" lw 2 pt 7 ps 1.5 dt ". "
 set style line 7 lt 1 lc rgb "#a6761d" lw 2 pt 7 ps 1.5 dt "-"
 
 re = 'a* a*b ba* (ab*)* ~(a*)b ((a|b)(a|b))* (1(01*0)*1|0)*'
-algo = "segConv"
+algo = "ThunkList"
 
-plot for [i = 1:words(re)] word(re,i)."_".algo."_haskell.csv" using 2:($1/10000) title word(re,i) noenhanced with lines ls i
+plot for [i = 1:words(re)] word(re,i)."_".algo."_ocaml.csv" using 2:($1/10000) title word(re,i) noenhanced with lines ls i

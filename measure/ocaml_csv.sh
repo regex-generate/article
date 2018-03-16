@@ -8,15 +8,15 @@ set -f #Disable globing
 ReBase=('a*' '(ab*)*' '~(a*)b')
 ReMore=('a*' 'a*b' 'ba*' '(ab*)*' '~(a*)b' '((a|b)(a|b))*' '(1(01*0)*1|0)*')
 
-BackendBase=("naive" "ref" "seg")
-BackendMore=("segConv")
+BackendBase=("ThunkListMemo" "LazyList" "StrictSet" "Trie")
+BackendMore=("ThunkList")
 
 function genH {
-    file="$2_$1_haskell.csv"
+    file="$2_$1_ocaml.csv"
     echo "Regex $2 on backend $1 to $file"
-    re-generate-exe \
-        --alphabet "ab" -s20 \
-        -b "${1^}Star" \
+    regenerate prof \
+        -a "ab" -s20 \
+        -i "$1" \
         "$2" > "$file"
 }
 
@@ -36,7 +36,7 @@ function go {
 go BackendBase ReBase
 go BackendMore ReMore
 
-echo "Gnuploting to haskell_all.png!"
-gnuplot haskell_all.gnuplot
-echo "Gnuploting to haskell_langs.png!"
-gnuplot haskell_langs.gnuplot
+echo "Gnuploting to ocaml_all.png!"
+gnuplot ocaml_all.gnuplot
+echo "Gnuploting to ocaml_langs.png!"
+gnuplot ocaml_langs.gnuplot
