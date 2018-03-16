@@ -7,7 +7,7 @@
 Two operations on the LLO representation, \code{concatenate} and
 \code{star}, internally transform their inputs into segment
 sequences. Such a transformation forth and back seems wasteful, so we
-stipulate to perform the entire generation in terms of segment
+stipulate to perform the entire generation process in terms of segment
 sequences. The transformation to a language only happens as the final
 step. Thus, the operations in this subsection manipulate languages in
 terms of the following type:
@@ -36,7 +36,7 @@ atom t = [[], [T.singleton t]]
 \end{figure}
 The implementation of \code{union}, \code{intersect}, and
 \code{difference} (and hence \code{complement}) is an easy exercise and thus omitted.
-We discuss the remaining issues with the code for concatenation in
+We discuss the remaining issues with the preliminary code for concatenation in
 Figure~\ref{fig:preliminary-concatenation-segmented}. 
 \begin{figure}[tp]
 \begin{lstlisting}
@@ -81,9 +81,9 @@ length $n$ can be constructed by concatenation of elements from
 the corresponding extension of \code{concatenate}. It makes use of
 \code{liftA2} used at type \code{(Int -> Int -> Int) -> Maybe Int ->
   Maybe Int -> Maybe Int} to add two values of type \code{Maybe
-  Int} if they are present.\footnote{The function \code{liftA2 ::
+  Int} if they are present.\footnote{The function \lstinline{liftA2 ::
     Applicative f => (a -> b -> c) -> f a -> f b -> f c} is taken from
-the standard module \code{Control.Applicative}.}
+the standard module \lstinline{Control.Applicative}.}
 \begin{figure}[tp]
 \begin{lstlisting}
 concatenate lx ly =
@@ -110,14 +110,15 @@ concatenate lx ly =
   \label{fig:finite-concatenation-segmented}
 \end{figure}
 
-The finite cases for \code{star} ($U^* = \{\varepsilon\}$ iff
-$U\subseteq\{\varepsilon\}$) are straightforward to detect and thus not further discussed.
+The output of \code{star} is only finite in two cases as $U^* = \{\varepsilon\}$ iff
+$U\subseteq\{\varepsilon\}$. Otherwise $|U^*|$ is infinite.
+The finite cases are straightforward to detect and thus not further discussed.
 
 \subsection{Assessment}
 \label{sec:interm-assessm}
 
 The segmented representation has a number of features that makes it
-well suited for use in practice. We discuss these features in turn and
+well suited in practice. We discuss these features in turn and
 consider further minor improvements in the subsections to follow.
 
 \subsubsection{Productivity}
@@ -127,10 +128,10 @@ be a total, finite list of words. There is no partiality in this representation.
 
 \subsubsection{Easy Bounding}
 To restrict the generated segmented output \code{segs} to words of length less than a given
-bound \code{n}, all we need to do is \code{take n segs}. The result is
+bound \code{n}, all we need to do is \code{concat (take n segs)}. The result is
 a finite list of words. In contract, such filtering is not effective
-for the LLO representation where \code{takeWhile (\w -> T.length w <
-  n) llo} may generate a partial list.
+for the LLO representation where
+\lstinline{takeWhile (\w -> T.length w <  n) llo} may yield a partial list.
 
 \subsubsection{Finite Languages}
 Segmentation yields a finite representation for all finite languages
@@ -174,7 +175,7 @@ concatenate'' lx ly = collect ly []
 The \code{combine} operation is an example of a convolution where
 indexing of the two lists proceeds in opposite directions. The \code{collect} operation
 could take advantage of this pattern and build a reversed list \code{rly} of already
-processed segments of \code{ly}. With this extra data structure, the
+processed segments of \code{ly} at $O(1)$ extra cost. Using this additional data structure, the
 convolution can be implemented in linear time using
 \code{zipWith} as shown in Figure~\ref{fig:concatenation-with-convolution}.
 
@@ -184,18 +185,24 @@ it gives rise to a very nice optimization. If \code{lx} is finite,
 then the \code{zipWith} automatically stops processing unnecessary indices in
 \code{ly}. Conversely, if \code{ly} starts with some empty segments
 because all its words are longer than some lower bound, then these
-segments safely could be omitted from \code{rly}.
+segments could safely be omitted from \code{rly}.
 
 This consideration reveals that the algorithm implemented in
 \code{concatenate''} is inherently asymmetric because it does not
-exploit the finiteness of \code{ly}. However, this asymmetry can be
-addressed easily (in the finiteness-aware version).  The code can be
+exploit the finiteness of \code{ly}. In the finiteness-aware version, this asymmetry can be
+addressed easily.  The code can be
 enhanced to detect that \code{ly} is finite. Then it just flips the roles of
 \code{lx} and \code{ly}, so that from now on \code{ly} is traversed in 
 forward direction and \code{lx} backwards. Flipping roles at length $n$ requires taking
 the initial $(n+1)$ segments of \code{lx} and reversing the resulting
 list. The cost for this reversal is amortized by the previous traversal of
-\code{ly} up to this point, so it has no impact on the asymptotic complexity.
+\code{ly} up to this point, so it has no impact on the asymptotic
+complexity.
+
+We implemented the finiteness-aware algorithm including role flipping,
+but we do not include the code in the paper, as it is a
+straightforward, but tedious variation of the code in
+Figure~\ref{fig:concatenation-with-convolution}. 
 
 \subsubsection{Map data structure}
 Alternatively, we could store the segments of \code{lx} and \code{ly}
@@ -212,16 +219,85 @@ corresponding segments are non-empty. With this information, the
 indexes where both \code{lx !!! i} and \code{ly !!! (n - i)} are
 non-empty.
 
-The combination of using maps and spares indexing would give rise to a
+The combination of using maps and sparse indexing gives rise to a
 more symmetric behavior.
 
+\subsection{Faster Closure}
+\label{sec:faster-closure}
 
+The optimizations described for concatenation also apply to the
+computation of the Kleene closure. The convolution approach does not
+require any flipping because it is clear that only the input language
+can be finite, as the cases where the output language is finite are
+treated specially, anyway.  
 
+Using a map data structure and sparse indexing can be done in exactly
+the same way as for concatenation.
 
 \subsection{More Finite Representations}
 \label{sec:more-finite-repr}
 
+We already remarked that we can keep segmented representations finite
+for finite languages constructed without using \code{complement}. An
+obvious idea to extend the realm of finite representations is to use a
+custom data type \code{Segments} for segment lists.
+\begin{lstlisting}
+data Segments
+  = Empty
+  | Cons Lang Segments
+  | Full [Lang]
+\end{lstlisting}
+The constructor \code{Empty} represents the empty set. A segment list
+of the form \code{Cons xl xsegs} represents the union of the language
+\code{xl} and the segments \code{xsegs}. If such a \code{Cons} node
+appears at level $n\ge0$ in a \code{Segments} data structure, then all
+words in \code{xl} have length $n$. The constructor \code{Full xls} is
+the novelty of this type. If it appears at level $n$, then it
+represents all words in $\Sigma^*$ of length $\ge n$. For convenience,
+the argument \code{xls} contains these words, structured as a
+(standard) list of segments.
 
+The definition of \code{Segments} relies on a special data type \code{Lang} to
+represent languages $L\subseteq \Sigma^n$,  for some $n$.
+\begin{lstlisting}
+data Lang
+  = Null
+  | Data [T.Text]
+  | Univ [T.Text]
+\end{lstlisting}
+The constructor \code{Null} stands for the empty set, \code{Data ws}
+stands for a non-empty set of words represented by an increasingly
+ordered list \code{ws}, and \code{Univ ws}, when encountered at level
+$n$, indicates that its argument \code{ws} represents the full set of
+word $\Sigma^n$.
+
+It is an easy, but tedious exercise to implement the operations
+\code{union}, \code{intersect}, and \code{difference} on \code{Lang}
+and \code{Segments} in a way that preserves the above invariants as
+much as possible.
+
+The resulting generation algorithm solves our previous problem 
+with $\Lang{\Rcomplement{(\Rcomplement{\Rnull})}} = \emptyset$,
+because it evaluates to \code{Empty}. Also, $\Lang{\Rcomplement{a}}$
+evaluates to a finite representation:
+\begin{lstlisting}[numbers=none]
+Cons (Univ [T.empty]) (Cons (Data [T.singleton 'b']) (Full _))
+\end{lstlisting}
+But a slight variation like
+$\Lang{(\Rcomplement{a})(\Rcomplement{b})} = \{a,b\}^*$ would not be
+represented finitely.
+
+It turns out that we can extend the range of languages for which
+finite representations are generated by dualizing the idea for
+detecting finiteness in Section~\ref{sec:segm-repr}. Consider
+languages $X, Y \subseteq \Sigma^*$ and 
+suppose that there exist numbers $f_x, f_y\ge0$ such that
+\begin{align*}
+  \forall x \in \Sigma^*, & |x| \ge f_x \Rightarrow x \in X
+  &\forall y \in \Sigma^*, & |y| \ge f_y \Rightarrow y \in Y
+\end{align*}
+In this case, we can show that $\forall w \in \Sigma$ if $|w|\ge
+f_x+f_y$, then $w \in X\cdot Y$.
 
 \clearpage{}
 %%% Local Variables:
