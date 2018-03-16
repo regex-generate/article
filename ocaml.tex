@@ -3,26 +3,28 @@
 
 \lstset{language=[Objective]Caml}
 
-In addition to the \haskell implementation, we implemented our language generator
+In addition to the \haskell implementation, we implemented the language generator
 in \ocaml.
 The \ocaml version only implements the ``latest'' version of the
-algorithm with a segmented representation, and fast backward lookup for concatenation and star.
+algorithm with a segmented representation and fast backward lookup for concatenation and star.
 % One of the goal of this implementation was to test
 % pure \ocaml regular expression libraries such as ocaml-re\footnote{\url{https://github.com/ocaml/ocaml-re}} and
 % mulet\footnote{\url{https://github.com/let-def/mulet}}. 
-The main goal of this implementation was to experiment with strictness
-and various data-structure for segments. 
-The key idea is that, since each segment contains only words of the same length,
-the internal order does not matter. We simply need a data structure
-supporting (fast) power series operations.
-In order to test this, we implemented our algorithm as a functor whose signature
-is shown in \autoref{code:sigs}.
-Our functor takes as argument two data-structures: words and segments.
-This way, we can easily test numerous representation without changing
-our code. This also gave us the opportunity to find the ``minimal'' operations
-needed to implement our algorithm, which we now describe.
+The main goal of this implementation is to experiment with strictness
+and various data structures for segments. 
+The key idea is that the internal order on words in a segment does not matter,
+because each segment only contains words of the same length.
+All we need is a data structure that supports the power series
+operations.
 
-\begin{figure}[b]
+To facilitate such experimentation, we implemented the generator
+algorithm as a functor whose signature is shown in \autoref{code:sigs}.
+The functor takes two data structures as arguments: words and segments.
+This structuring allows us to test numerous representations easily without changing
+the code. It also forced us to find the ``minimal'' set of operations
+needed to implement the algorithm.
+
+\begin{figure}[tp]
   \centering
   \begin{subfigure}{0.44\linewidth}
 \begin{lstlisting}[basicstyle=\scriptsize\ttfamily]
@@ -39,7 +41,7 @@ module type SEGMENT = sig
   val inter : t -> t -> t
   val diff : t -> t -> t
 
-  (** Product and append elements *)
+  (** Product *)
   val append: t -> t -> t
 
   (** n-way merge *)
@@ -55,7 +57,7 @@ module type SEGMENT = sig
   val memoize : t -> t
 end
 \end{lstlisting}
-    \caption{Necessary operation on segments}
+    \caption{Operations on segments}
     \label{code:sigs:segment}
   \end{subfigure}~
   \begin{subfigure}{0.57\linewidth}
@@ -68,7 +70,7 @@ module type WORD = sig
   val append : t -> t -> t
 end
 \end{lstlisting}
-    \caption{Necessary operation on words}
+    \caption{Operations on words}
     \label{code:sigs:word}
 \begin{lstlisting}[basicstyle=\scriptsize\ttfamily]
 module Regenerate
@@ -90,47 +92,49 @@ end
 
 \paragraph{Character and Words}
 
-The signature for words in shown in \autoref{code:sigs:word}.
-Surprisingly few operations are needed for words: Indeed, we mostly requires the ability to build the empty word (for \code{One}),
-words of one char (for \code{Atom}) and to append words
-with each others.
-Notably, we do not require an ordering on words: as said above, comparison between words is not required by the core algorithm and is simply a matter for the segment
-data structure.
-We also do not require a \code{length} operation: since words are always
-classified in the appropriate segments, their length is simply the index
-of the segment.
+\autoref{code:sigs:word} contains the signature for words.
+Surprisingly few operations are needed. We need to build the empty word (for \code{One}),
+singleton words (for \code{Atom}), and to append two words.
+Neither an ordering nor a length operation is needed for words:
+Comparison is encapsulated in the segment
+data structure and the length of a word is the index of the segment in
+which it appears.
 
-In practice, such a signature is easily satisfied by the \ocaml \code{string}
-type (\ie arrays of bytes), arrays or lists of characters, or ropes. The
-type of individual characters is completely unrestricted.
+This signature is easily satisfied by the \ocaml \code{string}
+type (\ie arrays of bytes), arrays, lists of characters, or ropes. The
+type of individual characters is unrestricted.
 
 \paragraph{Segments}
 
-The signature for segments is shown in \autoref{code:sigs:segment}.
-The main requirement is the support for the various operations on power series described in
+\autoref{code:sigs:segment} contains the signature for segments.
+The first group of operations creates and tests for empty segments and
+singleton segments. 
+The main requirement is to support the operations on power series described in
 \autoref{sec:ordered-enumeration}.
-For the set operations, we require
-\code{union}, \code{inter} and \code{inter} functions.
+For the set operations, we need the functions
+\code{union}, \code{inter} and \code{inter}.
 %
 The product described in \autoref{eq:1} is decomposed in two parts:
 \begin{itemize}
-\item  An \code{append} function which implement $U_i V_{n-i}$. It takes the
-  product of two segments and append their elements two by two.
-\item A \code{merge} operation which takes the union of an arbitrary number
-  of segments. This allows to collect the various segments obtained
-  with \code{append}.
+\item An \code{append} function which implements $U_i V_{n-i}$. It computes the
+  product of two segments by pairwise appending their elements.
+\item A \code{merge} operation which computes the union of an arbitrary number
+  of segments. Its purpose is to collect the segments obtained
+  by invocations of \code{append}.
 \end{itemize}
 %
-Since our goal is to experiment with various data structures, we want to allow
-ourselves to use implementations that are transient by default. We thus require
-a \code{memoize} function that will avoid recomputing segments accessed multiple times, which is the case for the concatenation of languages.
+As the goal is to experiment with different data structures, we want
+to use implementations that are transient by default. We thus require 
+a function \code{memoize} that avoids recomputing segments accessed
+multiple times, which happens when computing the concatenation or the closure of languages. 
 %
-Finally, we also need ways to import and export the elements of a segment, using \code{of_list} and \code{iter}.
+Finally, the functions  \code{of_list} and \code{iter} import and
+export elements to and from a segment.
 
 \subsection{Core algorithm}
 
 The core algorithm is very similar to the Haskell version. The power series
-is implemented using a thunk-list in the style of \citet{DBLP:conf/cpp/Pottier17}:
+is implemented using a thunk list in the style of \citet{DBLP:conf/cpp/Pottier17}:
 
 \begin{lstlisting}
 type 'a node =
@@ -143,13 +147,16 @@ A stream is represented by a function which takes a unit argument and returns
 a node. A node, in turn, is either \code{Nil} or a \code{Cons} of an
 element and the tail of the stream. The empty stream, for instance, is
 represented as \code{fun () -> Nil}.
-This representation has multiple advantages\footnote{See \url{https://github.com/ocaml/ocaml/pull/1002} for a (very) long discussion on the topic.}: it is lazy, fast, lightweight and almost as easy to manipulate as regular lists.
-It gives us a very natural representation for languages represented as power series:
+This representation has several advantages\footnote{See
+  \url{https://github.com/ocaml/ocaml/pull/1002} for a long discussion
+  on the topic.}: it is lazy, fast, lightweight, and almost as easy to
+manipulate as regular lists. 
+It gives rise to a very natural representation for languages represented as power series:
 \begin{lstlisting}[numbers=none]
 type lang = Segment.t stream
 \end{lstlisting}
 
-The rest of the implementation follow similarly to the \haskell one. For instance
+The rest of the implementation is similar to the \haskell one. For instance,
 here is the implementation of the union of languages:
 \begin{lstlisting}
 let rec union s1 s2 () = match s1(), s2() with
@@ -157,18 +164,17 @@ let rec union s1 s2 () = match s1(), s2() with
   | Cons (x1, next1), Cons (x2, next2) -> 
     Cons (Segment.union x1 x2, union next1 next2)
 \end{lstlisting}
-Note the presence of unit arguments, \code{()}, which allow to control the
-evaluation of the stream. With this definition, \code{union s1 s2} will not lead
-to any evaluation until \code{()} is provided. This ensures that the stream is
-properly lazy.
+The trailing unit argument, \code{()}, is essential because it allows
+us to drive the evaluation of the stream lazily. With this definition, \code{union s1 s2}
+will not cause  any evaluation until it is applied to \code{()}.
 
-The concatenation of languages demonstrate how the main algorithm can
-be expressed once the segment operation have been abstracted:.
-In order to build $U \cdot V$, we first build the $n$th term
+The concatenation of languages demonstrates how the main algorithm can
+be expressed once the segment operations have been abstracted:.
+To build $U \cdot V$, we first build the $n$th term
 $(U \cdot V)_n = \bigcup_{i=0}^n U_i V_{n-i}$.
 We use both \code{Segment.append} to implement the product
-of segment and the concatenation of words, and \code{Segment.merge} to merge
-all the resulting subterms.
+of segments and the concatenation of words and \code{Segment.merge} to merge
+all the resulting segments.
 \begin{lstlisting}
 let term_of_length map1 map2 n =
   let combine_segments i =
@@ -187,37 +193,40 @@ let rec collect n map1 map2 seq1 seq2 () = match seq1 (), seq2 () with
     Cons (term_of_length map1 map2 n, collect (n+1) map1 map2 seq1 seq2)
 \end{lstlisting}
 
-Note the use of \code{IntMap} to gain fast access to smaller
-segments that have already been computed. Since such segments will be accessed
-multiple time, we use \code{memoize} to avoid computing them again and again.
-The use of functional maps here is sufficient: the size of map is equal
-to the maximum word length, which should not be excessively big.
+The \code{IntMap} module provides a functional implementation of maps
+keyed by integers. The maps are used to quickly access
+segments of smaller index that have been computed in earlier invocations of
+\code{collect}. As such segments are accessed
+multiple times, we use \code{memoize} to avoid computing them over and
+over again.
+Functional maps are sufficient because the size of a map is equal
+to the maximum word length, which does not get excessively large.
 
 Finally, we initialize \code{collect} with empty maps.
 \begin{lstlisting}[numbers=none]
 let concatenate = collect 0 IntMap.empty IntMap.empty
 \end{lstlisting}
 
-\subsection{Data structure}
+\subsection{Data Structures}
 
-We have implemented our language generator parameterized by segments, we can now
-experiment various data-structures for segments. We present various
-potential implementation before comparing their performances.
+Now that we implemented the language generator parameterized by segments, we can
+experiment with various data structures for segments. We present a
+range of potential implementations before comparing their performance.
 
-\subsubsection{Ordered streams}
+\subsubsection{Ordered Streams}
 
-The \haskell implementation presented in \autoref{sec:ordered-enumeration}
-represent segments as ordered enumerations. We can use
+The \haskell implementation in \autoref{sec:ordered-enumeration}
+represents segments as ordered enumerations. We can use
 the same representation in \ocaml thanks to the \code{stream} datatype.
 \begin{lstlisting}[numbers=none]
 type t = elt stream
 \end{lstlisting}
 
-Since we use an order, we require a comparison function on elements.
-We also need an \code{append} functions on word. We summarize these requirement
-with the \code{OrderedMonoid} signature.
-We can the define the \code{ThunkList} functor shown in \autoref{code:thunklist}.
-We omit most of the function, as they can trivially implemented in a way
+To use an order, we need a comparison and an
+\code{append} function on words.  The \code{OrderedMonoid} signature
+captures these requirements. \autoref{code:thunklist} shows the
+resulting functor \code{ThunkList}.
+We omit the straightforward implementation.
 
 \begin{figure}
   \centering
@@ -233,7 +242,7 @@ module ThunkList (Elt : OrderedMonoid) : SEGMENTS with type elt = Elt.t
   \label{code:thunklist}
 \end{figure}
 
-The rest of the implementation is straightforward. For example, here is the
+The rest of the implementation is not difficult, either. For example, here is the
 \code{append} function, where \code{>>=} is bind (or \code{concatMap})
 and \code{>|=} is map.
 
@@ -242,7 +251,7 @@ let append l1 l2 =
   l1 >>= fun x -> l2 >|= fun y -> Elt.append x y
 \end{lstlisting}
 
-The n-way merge is implemented using a priority heap which hold pairs composed
+The n-way merge is implemented using a priority heap which holds pairs composed
 of the head of a stream and its tail. When a new element is required in the
 merged stream, we pop the top element of the heap, deconstruct
 the tail and insert it back in the heap.
@@ -267,9 +276,9 @@ let merge l =
 
 \subsubsection{Transience and Memoization}
 
-During concatenation and star, we iterate over segments multiple time.
-Unfortunately thunk lists are transient: iterating multiple time over the same list
-will compute it again. To offset this, we can implement memoization
+During concatenation and star, we iterate over segments multiple times.
+As thunk lists are transient, iterating multiple times over the same list
+will compute it multiple times. To avoid this recomputation, we can implement memoization
 over thunk lists by pushing the elements in a growing vector as they are
 computed:
 \begin{lstlisting}
@@ -294,7 +303,7 @@ if this operation is worthwhile we implemented two modules:
 \code{ThunkList} where memoization is the identity and \code{ThunkListMemo}
 with the implementation above.
 
-\subsubsection{Lazy lists}
+\subsubsection{Lazy Lists}
 
 \ocaml also supports regular lazy lists using the builtin \code{lazy} keyword:
 
@@ -305,30 +314,30 @@ type 'a node =
 type 'a lazylist = 'a node Lazy.t
 \end{lstlisting}
 
-We hence implemented the \code{LazyList} functor which is identical to the
+We implemented a \code{LazyList} functor which is identical to the
 \code{ThunkList} but uses lazy lists.
 
-\subsubsection{Strict sets}
+\subsubsection{Strict Sets}
 
-Since the main operation for segments are set operations, it is natural to
-expect sets to perform well. We implemented segments as sets
-of words using \ocaml builtin \code{Set} module. \ocaml sets are implemented
+As the main operations on segments are set operations, one might 
+expect a set implementation to perform well. We implemented segments as sets
+of words using \ocaml's built-in \code{Set} module. \ocaml sets are implemented
 using binary trees with an imbalance of at most one.
 The only operations not implemented by \ocaml's standard library are
-the n-way merge and the cartesian production which are easily implemented with
+the n-way merge and the product, but they are easy to implement with
 standard functions such as fold and union.
 
 \subsubsection{Tries}
 
 Tries are prefix trees where each branch is labeled with
 a character. A word is considered to belong to the trie if it is possible to
-follow its character and reach a value. Our problem seem very suitable to tries:
+follow its character and reach a value. Tries seem quite amenable to our problem:
 \begin{itemize}
-\item All words in a segment are of the same length and can thus never be prefixes
-  of each other. This mean that we can use tries where values are only
-  at the leaf.
-\item The \code{append} operation on tries can simply implemented by
-  grafting the second trie in all the leafs of the first one.
+\item All words in a segment are of the same length. Thus, they are never prefixes
+  of one another and we can use tries where values are only
+  at the leaves.
+\item The \code{append} operation on tries can be implemented by
+  grafting the second trie to all the leaves of the first one.
 \end{itemize}
 
 \TODO{}
