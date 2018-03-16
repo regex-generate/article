@@ -35,8 +35,12 @@ set tmargin 2
 
 
 set style line 1 lt 1 lc rgb "#1b9e77" lw 2 pt 7 ps 1.5 dt solid
-set style line 2 lt 1 lc rgb "#d95f02" lw 2 pt 11 ps 1.5 dt "-"
-set style line 3 lt 1 lc rgb "#7570b3" lw 2 pt 9 ps 1.5 dt ". "
+set style line 2 lt 1 lc rgb "#d95f02" lw 2 pt 11 ps 1.5 dt ". "
+set style line 3 lt 1 lc rgb "#7570b3" lw 2 pt 9 ps 1.5 dt "-"
+set style line 4 lt 1 lc rgb "#e7298a" lw 2 pt 7 ps 1.5 dt solid
+set style line 5 lt 1 lc rgb "#66a61e" lw 2 pt 7 ps 1.5 dt "_. "
+set style line 6 lt 1 lc rgb "#e6ab02" lw 2 pt 7 ps 1.5 dt ". "
+set style line 7 lt 1 lc rgb "#a6761d" lw 2 pt 7 ps 1.5 dt "-"
 
 re = 'a* (ab*)* ~(a*)b'
 algo = "ThunkList ThunkListMemo LazyList StrictSet Trie"
