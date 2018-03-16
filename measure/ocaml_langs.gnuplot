@@ -23,21 +23,21 @@ set grid back ls 81
 set ylabel "Count (×10^4)"
 set xlabel "Time (s)"
 set xrange [0:5]
-set yrange [0:]
+set yrange [0:1200]
 set logscale y
 
 # Put the legend at the bottom left of the plot
 set key right bottom
 
 set style line 1 lt 1 lc rgb "#1b9e77" lw 2 pt 7 ps 1.5 dt solid
-set style line 2 lt 1 lc rgb "#d95f02" lw 2 pt 11 ps 1.5 dt "."
+set style line 2 lt 1 lc rgb "#d95f02" lw 2 pt 11 ps 1.5 dt ". "
 set style line 3 lt 1 lc rgb "#7570b3" lw 2 pt 9 ps 1.5 dt "-"
 set style line 4 lt 1 lc rgb "#e7298a" lw 2 pt 7 ps 1.5 dt solid
 set style line 5 lt 1 lc rgb "#66a61e" lw 2 pt 7 ps 1.5 dt "_. "
 set style line 6 lt 1 lc rgb "#e6ab02" lw 2 pt 7 ps 1.5 dt ". "
 set style line 7 lt 1 lc rgb "#a6761d" lw 2 pt 7 ps 1.5 dt "-"
 
-re = 'a* a*b ba* (ab*)* ~(a*)b ((a|b)(a|b))* (1(01*0)*1|0)*'
+re = 'a* a*b ba* (ab*)* ~(a*)b ((a|b)(a|b))* (1(01*0)*1|0)* ~(a*)|~(b*)'
 algo = "ThunkList"
 
 plot for [i = 1:words(re)] word(re,i)."_".algo."_ocaml.csv" using 2:($1/10000) title word(re,i) noenhanced with lines ls i

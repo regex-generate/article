@@ -6,7 +6,7 @@ set -f #Disable globing
 
 
 ReBase=('a*' '(ab*)*' '~(a*)b')
-ReMore=('a*' 'a*b' 'ba*' '(ab*)*' '~(a*)b' '((a|b)(a|b))*' '(1(01*0)*1|0)*')
+ReMore=('a*' 'a*b' 'ba*' '(ab*)*' '~(a*)b' '((a|b)(a|b))*' '(1(01*0)*1|0)*' '~(a*)|~(b*)')
 
 BackendBase=("naive" "ref" "seg" "refConv")
 BackendMore=("segConv")

@@ -1,10 +1,11 @@
 \section{Benchmarks}
 \label{sec:bench}
 
-We compared our various implementations along two directions: first
-we compared the various algorithmic improvements detailed in
-\
-
+We now compare the performance of our implementations following two directions.
+First, we compare the successive algorithmic refinement using the \haskell
+implementation presented in \autoref{sec:motivation} and \autoref{sec:improvements}.
+We then compare different data-structure implementation for segments
+using the \ocaml implementation detailed in \autoref{sec:ocaml}.
 
 \subsection{Comparing algorithms in the \haskell implementation}
 
@@ -27,6 +28,15 @@ presented in \autoref{bench:ocaml:all}.
   \includegraphics[width=\linewidth]{measure/ocaml_all.png}
   \caption{Benchmark for the \ocaml implementation with various data-structures}
   \label{bench:ocaml:all}
+\end{figure}
+
+\subsubsection{Union and set operations}
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=\linewidth]{measure/ocaml_union.png}
+  \caption{Benchmarking \texttt{union} in the \ocaml data-structures}
+  \label{bench:ocaml:union}
 \end{figure}
 
 \subsection{The influence of regular expressions on performances}
