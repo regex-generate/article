@@ -8,7 +8,8 @@ in \ocaml.
 The \ocaml version only implements the ``latest'' version of the
 algorithm with a segmented representation and fast backward lookup and convolutions
 for concatenation and star.
-It however doesn't implement the symbolic representation of segments.
+It however doesn't implement the symbolic representation of segments
+discussed in \cref{sec:more-finite-repr}.
 % One of the goal of this implementation was to test
 % pure \ocaml regular expression libraries such as ocaml-re\footnote{\url{https://github.com/ocaml/ocaml-re}} and
 % mulet\footnote{\url{https://github.com/let-def/mulet}}. 
@@ -20,7 +21,7 @@ All we need is a data structure that supports the power series
 operations.
 
 To facilitate such experimentation, we implemented the generator
-algorithm as a functor whose signature is shown in \autoref{code:sigs}.
+algorithm as a functor whose signature is shown in \cref{code:sigs}.
 The functor takes two data structures as arguments: words and segments.
 This structuring allows us to test numerous representations easily without changing
 the code. It also forced us to find the ``minimal'' set of operations
@@ -208,6 +209,24 @@ Finally, we initialize \code{collect} with empty maps.
 \begin{lstlisting}[numbers=none]
 let concatenate = collect 0 IntMap.empty IntMap.empty
 \end{lstlisting}
+
+The biggest difference compared to the \haskell version relates to the use
+of recursion to define \code{star}-related operations.
+For instance, the \haskell implementation defines \code{lsigmastar} as
+\code{[T.empty] : map extend lsigmastar}. Such a recursive definition
+can not be translated directly to \ocaml, since it is not compatible with
+strict-by-default evaluation and will be prevented by the compiler.
+Instead, we simply use an accumulator to keep track of the latest version
+of the language.
+A similar change was made for the definition of \code{star}.
+\begin{lstlisting}
+let sigma_star sigma =
+  let rec collect acc () =
+    Iter.Cons (acc, collect (Segment.append sigma acc))
+  in
+  collect (Segment.return W.empty)
+\end{lstlisting}
+
 
 \subsection{Data Structures}
 
