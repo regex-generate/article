@@ -30,7 +30,7 @@ set yrange [0:]
 set key left top
 
 set multiplot layout 1,3 columnsfirst scale 1,1
-set tmargin 0.1
+set tmargin 2
 
 
 set style line 1 lt 1 lc rgb "#1b9e77" lw 4 pt 7 ps 1.5 dt solid
