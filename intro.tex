@@ -13,21 +13,57 @@ translation from regular expressions to nondeterministic finite
 automata and then apply the powerset construction to obtain a
 deterministic automaton. Others are based on Brzozowski's derivatives
 \cite{Brzozowski1964} and
-maps a regular expression directly to a deterministic
+map a regular expression directly to a deterministic
 automaton. Antimirov's partial derivatives \cite{Antimirov96Partial}
-yield another transformation into a nondeterministic automaton.
-Yet others execute and memoize nondeterministic automata 
+yield another transformation into a nondeterministic automaton. An
+implementation based on Glushkov automata has been proposed
+\cite{DBLP:conf/icfp/FischerHW10} with decent performance.
+Cox's webpage \cite{cox07:_implem_regul_expres} gives a good overview
+of efficient implementations of regular expression search. It includes
+a discussion of his implementation of Google's RE2 \cite{cox10:_regul_expres_match_wild}.
+Current research still uncovers new efficient algorithms for matching
+subclasses of regular expressions \cite{DBLP:journals/jcss/GrozM17}.
 
-\begin{itemize}
-\item Efficient testing and matching of deterministic regular
-  expressions \cite{DBLP:journals/jcss/GrozM17}
-\end{itemize}
-\TODO{}
+Some of the algorithms for regular expression matching are rather
+intricate and the natural question arises how to test these algorithms. 
+While there online repositories with reams of real life regular
+expressions \cite{regul_expres_librar}, there are no satisfactory
+generators for test inputs. It is not too hard to come up with
+generators for strings that match a given regular expression, but that
+is only one side of the medal. On the other hand, the algorithm should
+reject strings that do not match the regular expression, so it is
+equally important to come up with strings that do \textbf{not} match.
 
-The implementation will be available on Github and will be submitted for artifact evaluation. 
+This work presents generator algorithms for extended regular expressions that
+contain intersection and complement beyond the regular operators. The
+presence of the complement operator enables the algorithms to generate
+strings that certainly do not match a given (extended) regular
+expression.
+
+Our implementations are useful in practice. They are guaranteed to be
+productive and produce total outputs. That is, a user can gauge the
+string size as well as the number of generated strings without risking
+partiality.
+
+Even though the implementations
+are not tuned for efficiency they generate
+languages at a rate between $16\cdot10^3$ and $1.4\cdot10^6$ strings per
+second, for Haskell, and up to $3.6\cdot10^6$ strings per second, for
+OCaml. The generation rate depends on the density of the language.
 
 
-We assume familiarity with Haskell throughout the paper.  Some
+The development of the generator is explained using both Haskell and
+OCaml and implementations for both languages will be available for
+artifact evaluation. The overall design makes significant use of
+laziness. This part of the design space is investigated and explained
+using Haskell in Sections~\ref{sec:motivation}
+and~\ref{sec:improvements}. Fine tuning of the underlying data
+structures is investigated using OCaml in Section~\ref{sec:ocaml}.
+Section~\ref{sec:bench} reports benchmarking results,
+Section~\ref{sec:related-work} discusses related work, and
+Section~\ref{sec:conclusions} concludes. 
+
+We assume fluency with Haskell and OCaml throughout the paper.  Some
 familiarity with formal languages is helpful, but not required as the
 paper contains all relevant definitions. Our notation for formal
 languages is borrowed from one of the classic textbooks on the topic
