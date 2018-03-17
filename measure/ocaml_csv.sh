@@ -5,8 +5,8 @@ IFS=$'\n\t'
 set -f #Disable globing
 
 
-ReBase=('a*' '(ab*)*' '~(a*)b' '~(a*)|~(b*)' '(aa*b|bb*a)(a|b)*')
-ReMore=('a*' 'a*b' 'ba*' '(ab*)*' '~(a*)b' '((a|b)(a|b))*' '(1(01*0)*1|0)*'  '~(a*)|~(b*)' '(aa*b|bb*a)(a|b)*')
+ReBase=('a*' '(ab*)*' '~(a*)b' '~(a*)&~(b*)' '(aa*b|bb*a)(a|b)*')
+ReMore=('a*' 'a*b' 'ba*' '(ab*)*' '~(a*)b' '((a|b)(a|b))*' '(1(01*0)*1|0)*'  '~(a*)&~(b*)' '(aa*b|bb*a)(a|b)*')
 
 BackendBase=("ThunkListMemo" "LazyList" "StrictSet" "Trie")
 BackendMore=("ThunkList")

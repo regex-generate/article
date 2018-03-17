@@ -2,7 +2,7 @@
 
 # set terminal x11 size 1500,500 font 'Deja Vu Sans Mono,14' persist
 
-set terminal pngcairo transparent size 2100,700 rounded font 'Deja Vu Sans,15'
+set terminal pngcairo transparent size 2100,900 rounded font 'Deja Vu Sans,18'
 set output 'ocaml_all.png'
 
 # set terminal tikz standalone size 15,6 textscale 0.5
@@ -30,16 +30,16 @@ set yrange [0:]
 set key left top
 
 set multiplot layout 1,3 columnsfirst scale 1,1
-set tmargin 2
+set tmargin 0.1
 
 
-set style line 1 lt 1 lc rgb "#1b9e77" lw 3 pt 7 ps 1.5 dt solid
-set style line 2 lt 1 lc rgb "#d95f02" lw 3 pt 11 ps 1.5 dt ". "
-set style line 3 lt 1 lc rgb "#7570b3" lw 3 pt 9 ps 1.5 dt "-"
-set style line 4 lt 1 lc rgb "#e7298a" lw 3 pt 7 ps 1.5 dt solid
-set style line 5 lt 1 lc rgb "#66a61e" lw 3 pt 7 ps 1.5 dt "_. "
-set style line 6 lt 1 lc rgb "#e6ab02" lw 3 pt 7 ps 1.5 dt ". "
-set style line 7 lt 1 lc rgb "#a6761d" lw 3 pt 7 ps 1.5 dt "-"
+set style line 1 lt 1 lc rgb "#1b9e77" lw 4 pt 7 ps 1.5 dt solid
+set style line 2 lt 1 lc rgb "#d95f02" lw 4 pt 11 ps 1.5 dt ". "
+set style line 3 lt 1 lc rgb "#7570b3" lw 4 pt 9 ps 1.5 dt "-"
+set style line 4 lt 1 lc rgb "#e7298a" lw 4 pt 7 ps 1.5 dt solid
+set style line 5 lt 1 lc rgb "#66a61e" lw 4 pt 7 ps 1.5 dt "_. "
+set style line 6 lt 1 lc rgb "#e6ab02" lw 4 pt 7 ps 1.5 dt ". "
+set style line 7 lt 1 lc rgb "#a6761d" lw 4 pt 7 ps 1.5 dt "-"
 
 re = 'a* (ab*)* ~(a*)b'
 algo = "ThunkList ThunkListMemo LazyList StrictSet Trie"
