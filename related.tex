@@ -45,20 +45,21 @@ testing the grammar, rather than the parser.
 
 \subsubsection*{Test Data Generation}
 
-QuickCheck~\cite{DBLP:conf/icfp/ClaessenH00} introduces the notion
-of \emph{property based} testing, where input data for the function
+Since the introduction of QuickCheck~\cite{DBLP:conf/icfp/ClaessenH00},
+property testing and test-data generation has been used successfully in a
+wide variety of contexts.
+In property testing, input data for the function
 to test is described via a set of combinators, and generated via
-a random number generator. This approach has proven to be extremely
-successful in many domains. One difficulty of this approach is
+a pseudo-random number generator. One difficulty of this approach is
 to find the correct distribution of inputs that will generate challenging
 test cases. This is particular troublesome for testing of regular expressions
 since, as we highlighted in \cref{sec:motivation}, many languages
-have a probability of zero of being generated randomly.
-However, generating random \emph{regular expressions} is much easier, which
-would allow to combine property testing with our approach.
+have a probability zero of being generated randomly.
+Generating random \emph{regular expressions}, however, is much easier. We can
+thus combine property testing to generate regular expression and applies
+our language generator to these randomly generated regular expressions.
 
-Crowbar~\cite{crowbar} is a library that combines property testing in
-the style of QuickCheck with fuzzing.
+Crowbar~\cite{crowbar} is a library that combines property testing with fuzzing.
 In QuickCheck, the generation is driven by a random number generator. Crowbar replaces this generator by \texttt{afl-fuzz}~\cite{afl}. Afl is a fuzzer that
 relies on runtime instrumentation to provide
 good code coverage, thus eliminating the need to specify the distribution of random generators.
