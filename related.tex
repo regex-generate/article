@@ -52,6 +52,15 @@ Robby Findler
 
 \subsubsection*{Fuzzing}
 
+Crowbar~\cite{crowbar} is a library that combines property testing in
+the style of QuickCheck with fuzzing.
+In QuickCheck, the programmer describes the shape of the data using
+combinators (or type-based deriving) while the actual generation is driven by
+a random number generator. Crowbar replaces this generator by \texttt{afl-fuzz}~\cite{afl}. Afl relies on instrumentation to provide
+good code coverage, thus eliminating the need to specify the distribution of random generators.
+This approach, however, is not sufficient to generate both regular expressions
+and inputs, as we would still require an oracle. Our language generator
+could allow to easily fuzz regular expression parsers.
 
 
 %%% Local Variables:

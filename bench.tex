@@ -84,6 +84,7 @@ we did not attempt to correct this.
 \end{figure}
 
 \subsection{Comparing data-structures in the \ocaml implementation}
+\label{sec:bench:ocaml}
 
 We have now established that the refConv algorithm provides the best performances.
 The \haskell implementation, however, only uses lazy lists. To measure
@@ -164,28 +165,28 @@ to measure both language in exactly the same conditions.
 The comparison is shown in \cref{bench:langs}. In order to better visualize the
 various regular expressions, the word count uses a logarithmic scale.
 
-In addition to the regular expression presented previously, we added the following:
+In addition to the regular expressions presented previously, we added the following:
 \begin{itemize}
 \item $\Rstar{(\Sigma\Sigma)}$, the language of words of lenght pair. This language
   is neither finite nor cofinite and make great use of the symbolic
   representation of segments.
 \item $\Rstar{(\Runion{1 \Rstar{(0\Rstar{1}0)}1}{0})}$, the language
   of multiple of 3 written in binary. Again, this is a language that is neither
-  finite nor cofinite, but whose segments are never full nor empty.
-\item Both $\Rstar{a}b$ and $b\Rstar{a}$, which allows us to see if
-  \code{concatenation} is a symmetric operation performance-wise.
+  finite nor cofinite, but its segments are never full nor empty.
+\item $\Rstar{a}b$ and $b\Rstar{a}$, which allow us to see if
+  \code{concatenation} has symmetric performances.
 \end{itemize}
 
-A first remark is that languages are roughly ordered by size. It is faster
+We remark that languages are roughly ordered by size. It is faster
 to generate a language whose segments are bigger. Indeed,
 most of the operations, notably
-those involving product of segments, are more expansive when considerin
-segments of higher index, thus making longer strings harder to generate.
+those involving product of segments, are more expansive when considering
+segments of higher indices, thus making longer strings harder to generate.
 If each segment contain many words, we do not need to compute many segments to
 generate a large number of words.
 %
 We also note that the generation of $\Rstar{a}b$ and $b\Rstar{a}$
-has indeed the same performance for the \haskell implementation.
+has indeed the same performance in the \haskell implementation.
 The \ocaml version is however asymmetric, since it does not implement
 the improved convolution technique with
 detection of finite languages, as described in \cref{sec:convolution}.
@@ -195,13 +196,13 @@ detection of finite languages, as described in \cref{sec:convolution}.
   \centering
   \begin{subfigure}[t]{0.45\linewidth}
     \centering
-    \includegraphics[height=0.66\linewidth]{measure/haskell_langs.png}
+    \includegraphics[width=\linewidth]{measure/haskell_langs.png}
     \caption{\haskell implementation with \code{segConv}}
     \label{bench:haskell:langs}
   \end{subfigure}
   \begin{subfigure}[t]{0.45\linewidth}
     \centering
-    \includegraphics[height=0.66\linewidth]{measure/ocaml_langs.png}
+    \includegraphics[width=\linewidth]{measure/ocaml_langs.png}
     \caption{\ocaml implementation with \code{ThunkList}}
     \label{bench:ocaml:langs}
   \end{subfigure}

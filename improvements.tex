@@ -90,8 +90,9 @@ length $n$ can be constructed by concatenation of elements from
 \code{lx} and
 \code{ly}. Figure~\ref{fig:finite-concatenation-segmented} contains
 the corresponding extension of \code{concatenate}. It makes use of
-\code{liftA2} used at type \code{(Int -> Int -> Int) -> Maybe Int ->
-  Maybe Int -> Maybe Int} to add two values of type \code{Maybe
+\code{liftA2} used at type
+\code{(Int -> Int -> Int) -> Maybe Int -> Maybe Int -> Maybe Int}
+to add two values of type \code{Maybe
   Int} if they are present.\footnote{The function \lstinline{liftA2 ::
     Applicative f => (a -> b -> c) -> f a -> f b -> f c} is taken from
 the standard module \lstinline{Control.Applicative}.}

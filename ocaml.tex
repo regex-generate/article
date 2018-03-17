@@ -6,7 +6,10 @@
 In addition to the \haskell implementation, we implemented the language generator
 in \ocaml.
 The \ocaml version only implements the ``latest'' version of the
-algorithm with a segmented representation and fast backward lookup for concatenation and star.
+algorithm with a segmented representation and fast backward lookup and convolutions
+for concatenation and star.
+It however doesn't implement the symbolic representation of segments
+discussed in \cref{sec:more-finite-repr}.
 % One of the goal of this implementation was to test
 % pure \ocaml regular expression libraries such as ocaml-re\footnote{\url{https://github.com/ocaml/ocaml-re}} and
 % mulet\footnote{\url{https://github.com/let-def/mulet}}. 
@@ -18,7 +21,7 @@ All we need is a data structure that supports the power series
 operations.
 
 To facilitate such experimentation, we implemented the generator
-algorithm as a functor whose signature is shown in \autoref{code:sigs}.
+algorithm as a functor whose signature is shown in \cref{code:sigs}.
 The functor takes two data structures as arguments: words and segments.
 This structuring allows us to test numerous representations easily without changing
 the code. It also forced us to find the ``minimal'' set of operations
@@ -207,6 +210,24 @@ Finally, we initialize \code{collect} with empty maps.
 let concatenate = collect 0 IntMap.empty IntMap.empty
 \end{lstlisting}
 
+The biggest difference compared to the \haskell version relates to the use
+of recursion to define \code{star}-related operations.
+For instance, the \haskell implementation defines \code{lsigmastar} as
+\code{[T.empty] : map extend lsigmastar}. Such a recursive definition
+can not be translated directly to \ocaml, since it is not compatible with
+strict-by-default evaluation and will be prevented by the compiler.
+Instead, we simply use an accumulator to keep track of the latest version
+of the language.
+A similar change was made for the definition of \code{star}.
+\begin{lstlisting}
+let sigma_star sigma =
+  let rec collect acc () =
+    Iter.Cons (acc, collect (Segment.append sigma acc))
+  in
+  collect (Segment.return W.empty)
+\end{lstlisting}
+
+
 \subsection{Data Structures}
 
 Now that we implemented the language generator parameterized by segments, we can
@@ -279,7 +300,8 @@ During concatenation and star, we iterate over segments multiple times.
 As thunk lists are transient, iterating multiple times over the same list
 will compute it multiple times. To avoid this recomputation, we can implement memoization
 over thunk lists by pushing the elements in a growing vector as they are
-computed:
+computed. Before evaluating a new thunk, we first check if it is already available
+in the vector. Otherwise, evaluate it, push it into the vector and return it.
 \begin{lstlisting}
 let memoize f =
   let r = CCVector.create () in
@@ -304,7 +326,7 @@ with the implementation above.
 
 \subsubsection{Lazy Lists}
 
-\ocaml also supports regular lazy lists using the builtin \code{lazy} keyword:
+\ocaml also supports regular lazy lists using the builtin \code{Lazy.t} type:
 
 \begin{lstlisting}
 type 'a node =
@@ -339,9 +361,38 @@ Tries seem well adapted to our problem:
   grafting the second trie to all the leaves of the first one.
 \end{itemize}
 
-\TODO{}
+As such, we can implement tries similarly to tries of integers as described
+by \citet{Okasaki98fastmergeable}.
+For the sake of simplicity, we decide not to use path compression, which mean
+that branches will always contain only one char.
+A trie is then either empty, a leaf containing a value or a Node containing a map from characters
+to children of the trie. Since the only value we are interested in are the path themselves, we use tries with unit values. 
 
+\begin{lstlisting}
+type 'a trie =
+  | Empty
+  | Leaf of 'a
+  | Node of 'a trie CharMap.t
 
+type t = unit trie
+\end{lstlisting}
+
+The implementation of most operations follow the literature closely. The only
+novel operation is \code{append}, which can be implemented using a simple
+recursive walk. Note how the value t0 is not copied, thus enabling
+a high degree of sharing between the tries.
+
+\begin{lstlisting}
+let rec append t t0 = match t with
+  | Empty -> Empty
+  | Leaf () -> t0
+  | Node map -> M.map (fun t' -> append t' t0) map in
+\end{lstlisting}
+
+This implementation of append relies on the fact that we do not store
+values at the leaf. If we were to store, for instance, the path to the leaf,
+we would have to modify all the leafs of the tries. This would be both
+expansive to compute and lose the sharing among tries at the leaves.
 
 %%% Local Variables:
 %%% mode: latex
