@@ -1,87 +1,118 @@
 \section{Benchmarks}
 \label{sec:bench}
 
-We now compare the performances of our implementations according to two criterions.
+This section compares the performance of our implementations in two dimensions.
 First, we compare the successive algorithmic refinements using the \haskell
 implementation presented in \cref{sec:motivation} and \cref{sec:improvements}.
-We then compare different data-structure implementations for segments
-using the \ocaml implementation detailed in \cref{sec:ocaml}.
+Second, we compare different choices of data structures to represent segments
+using the \ocaml implementation described in \cref{sec:ocaml}.
 
 All benchmarks were done on a ThinkPad T470 with an i5-7200U CPU and 12Go of memory.
-The \haskell benchmarks use the lts-10.8 platform and the \texttt{-02} option.
+The \haskell benchmarks use the Stackage LTS 10.8 release and the \texttt{-O2} option.
 The OCaml benchmarks use \ocaml 4.06.1 with the flambda optimizer and the
-\texttt{-03} option. Additionally, we annotated functors
-with the \code{[@inline]} annotation which ensures that functors are applied at
-compile-time and their content benefits from available optimizations.
+\texttt{-O3} option. We annotate functors
+with the \code{[@inline]} annotation to ensure that functors are applied at
+compile time and their content benefits from available optimizations.
 
-\subsection{Comparing algorithms in the \haskell implementation}
+\subsection{Comparing Algorithms in the \haskell Implementation}
 
-\cref{sec:motivation} and \cref{sec:improvements} present improvements to
-the algorithm for generating languages. We now evaluate
-the impact of these improvements on performances.
-The performances are obviously highly dependent on the regular expression
-considered. We chose three regular expressions that highlight
-the various strength and weaknesses of the different approaches:
+\cref{sec:motivation} and \cref{sec:improvements} develop the
+algorithm for generating languages in a sequence of changes applied to
+a naive baseline algorithm. We now evaluate the impact of these
+changes on performance, which we plan to measure in terms of
+generation speed in words per second. It turns out that this speed
+depends heavily on the characteristics of the the regular expression
+considered. For that reason, we choose three representative regular expressions to highlight the
+strengths and weaknesses of the different approaches.
 \begin{itemize}
-\item$\Rstar a$: The \code{star} operation is very performance intensive.
-  The input language only contains one segment, which highlight the usefulness
-  of sparse indexing and maps. Since each segments of the output language contains
-  only one element, this also tests the behavior of star at high length.
-\item $\Rstar{(\Rconcat{a}{\Rstar{b}})}$: On the opposite end of the spectrum, this
-  regular expression applies \code{star} to a language where all segments
-  are neither empty nor full. This measures the performances of \code{star}
-  and \code{concatenation} on non-sparse languages.
-\item $\Rconcat{\Rcomplement{(\Rstar{a})}}{b}$: Finally, this regular expressions
-  tests the generation of a very big language through \code{star} and the
-  concatenation to a much smaller language.
+\item $\Rstar a$: This expression describes a very small language with $P (w\in L) = 0$.
+  Nevertheless, it puts a lot of stress on the underlying
+  append operation on words as their length increases very quickly.
+  The input language contains only one segment whereas all segments of
+  the output language contain exactly one element. This combination
+  highlights the usefulness of sparse indexing and maps.
+\item $\Rstar{(\Rconcat{a}{\Rstar{b}})}$: On the opposite end of the
+  spectrum, the language of this regular expression is fairly large
+  with $P (w\in L)=0.5$. The expression applies \code{star} to a
+  language where segment $n+1$ consists of the word $ab^n$. Its
+  evaluation measures the performance of \code{star} on a non-sparse
+  language and of {concatenation} applied to a finite and an infinite
+  language.
+\item $\Rconcat{\Rcomplement{(\Rstar{a})}}{b}$: Finally, this regular
+  expression exercises the complement operation and tests the
+  concatenation of a very large language, 
+  $P (w\in \Lang{\Rcomplement{(\Rstar a)}}) = 1$, to a much smaller
+  language.
 \end{itemize}
 
-\TODO{Describe what are the different haskell implementations: naive, ref, seg, refConv, segConv}
-
-To evaluate the performance, we iterate through the stream of words produced by
-the generator. Every 20 words, we register the time since the start of the
-iteration. We stop the iteration after 5 seconds and graph the numbers reached in
-function of the time spent: the faster a curve grows, the faster it generate
-words.
-The results can be seen in \cref{bench:haskell:all}.
-We first note that most implementations generate between 3000 and
-150000 words in the first second, which seems more than sufficient for testing
-purposes.
-Additionally, the refConv implementation
-which uses symbolic segments and convolutions
-is the most versatile. This validates our improvements
-proposed in \cref{sec:improvements}.
-Looking at each graph in more details, we can make the following remarks:
-\begin{itemize}[leftmargin=*]
-\item All implementations are equally fast on $\Rstar a$ except
-for the naive implementation. This is not surprising, since it does not uses
-sparse indexing and only relies on list lookups.
-\item 
-For $\Rstar{(\Rconcat{a}{\Rstar{b}})}$ and
-$\Rconcat{\Rcomplement{(\Rstar{a})}}{b}$, some implementations showcase
-a shape in ``skewed stairs''. This is explained by insufficient laziness:
-when arriving at a new segment, part of the work is done eagerly which causes
-a plateau. When that part is done, the enumeration proceeds lazily.
-Since laziness and GHC optimizations are hard to control in a manual fashion,
-we did not attempt to correct this.
-\item $\Rstar{(\Rconcat{a}{\Rstar{b}})}$ demonstrates that sparse indexing
-  does degrade performances when applying \code{star} to non-sparse languages.
-  The performance impact is however recovered using the convolution technique
-  presented in \cref{sec:convolution}.
-\item The ref and refConv algorithm are significantly faster
-  on $\Rconcat{\Rcomplement{(\Rstar{a})}}{b}$ compared to the
-  seg and SegConv. This is probably explained by
-  the symbolic treatment of segments. Complement is implemented
-  as the difference with $\Rstar{\Sigma}$ which can be represented much more
-  compactly in a symbolic manner.
+In the evaluation, we consider five variants of the Haskell implementation.
+\begin{itemize}
+\item The \textbf{naive} implementation corresponds to the code developed by
+  the end of Section~\ref{sec:motivation}. It transforms to and from
+  segments on the fly and it uses plain list indexing in the
+  implementation of concatenation and closure.
+\item The \textbf{seg} implementation uses the infinite list-based segmented
+  representation throughout (Section~\ref{sec:segm-repr}). Moreover,
+  it relies on using maps and sparse indexing
+  (Sections~\ref{sec:map-data-structure} and~\ref{sec:sparse-indexing})
+  for concatenation and closure.
+\item The \textbf{segConv} implementation uses finite and infinite
+  segment lists, but it applies the convolution approach
+  (Section~\ref{sec:convolution}) to implement concatenation and
+  closure.
+\item The \textbf{ref} implementation uses the specialized segmented
+  representation from Section~\ref{sec:more-finite-repr} combined with
+  maps and sparse indexing.
+\item The \textbf{refConv} implementation uses the specialized
+  segmented representation from Section~\ref{sec:more-finite-repr}
+  combined with convolution.
 \end{itemize}
 
-\begin{figure}[h]
+\begin{figure}[tp]
   \centering
   \includegraphics[height=0.33\linewidth]{measure/haskell_all.png}
   \caption{Benchmark for the \haskell implementation with various algorithms}
   \label{bench:haskell:all}
 \end{figure}
+To evaluate the performance, we iterate through the stream of words
+produced by the generator and force their evaluation.\footnote{In
+  Haskell, forcing is done using \lstinline{Control.DeepSeq}.} Every
+20 words, we record the time elapsed since the start of the iteration. We
+stop the iteration after 5 seconds. The resulting graph plots the time (x-axis) against the number of words (y-axis) produced so far. The slope of the graph in indicates the generation speed of the plotted algorithm, high slope is correlated to high generation speed.  \cref{bench:haskell:all} contains the results for the Haskell implementations.
+
+Most algorithms generate between 3000 and
+150000 words in the first second, which seems more than sufficient for
+testing purposes.  Additionally, the refConv implementation which uses
+symbolic segments and convolutions is the most versatile. This observation
+validates that the changes proposed in \cref{sec:improvements} actually lead to improvements.
+
+Looking at each graph in more detail, we can make the following
+remarks:
+\begin{itemize}[leftmargin=*]
+\item All implementations are equally fast on $\Rstar a$ except
+  the naive implementation, which  relies on list lookups without
+  sparse indexing.
+\item For $\Rstar{(\Rconcat{a}{\Rstar{b}})}$ and
+  $\Rconcat{\Rcomplement{(\Rstar{a})}}{b}$, the graph of some implementations
+  has the shape of ``skewed stairs''. We believe this phenomenon is due to
+  insufficient laziness: when arriving at a new segment, part of the
+  work is done eagerly which causes a plateau. When that part is done,
+  the enumeration proceeds lazily.  As laziness and GHC
+  optimizations are hard to control, we did not attempt to correct this.
+\item $\Rstar{(\Rconcat{a}{\Rstar{b}})}$ demonstrates that sparse indexing
+  does degrade performance when applying \code{star} to non-sparse languages.
+  Using the convolution technique presented in \cref{sec:convolution} resolves this problem.
+\item The \textbf{ref} and \textbf{refConv} algorithms are
+  significantly faster on $\Rconcat{\Rcomplement{(\Rstar{a})}}{b}$
+  compared to \textbf{seg} and \textbf{segConv}. We have no good
+  explanation for this behavior as the code is identical up to the
+  symbolic representation of full and empty segments. However, the
+  only sublanguage where this representation could make a difference
+  is $\Lang{b}$, which is also represented finitely by
+  \textbf{segConv} and should thus benefit from the convolution
+  improvement in the same way as \textbf{refConv}.
+\end{itemize}
+
 
 \subsection{Comparing data-structures in the \ocaml implementation}
 \label{sec:bench:ocaml}
