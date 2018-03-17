@@ -379,7 +379,7 @@ type t = unit trie
 \end{lstlisting}
 
 The implementation of most operations follows the literature
-closely. The only novel operation is \code{append}, which can be
+closely. The only novel operation is \code{append} to compute the product of two sets. It can be
 implemented in a single traversal.
 
 \begin{lstlisting}
@@ -391,7 +391,7 @@ let rec append t t0 = match t with
 
 The implementation of \code{append} relies on the fact that we do not store
 values at the leaves. Hence, the appended trie \code{t0} need not by
-copied, which is more efficient and leads to a high degree of sharing between the tries.
+copied, which is more efficient both in terms of time and space as it leads to a high degree of sharing between the tries.
 
 %%% Local Variables:
 %%% mode: latex
