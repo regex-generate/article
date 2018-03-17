@@ -1,0 +1,21 @@
+Regular expressions are one of common tool of the everyday programmer.
+They are used for a wide variety of tasks and how to parse them is both
+a well explored area, yet one that still receives frequent contributions.
+It is somehow surprising than testing regular expression implementation
+doesn't have a satisfying solution. Even using property based testing, one
+still needs to rely on an external oracle. Furthermore,
+the presence of an oracle does not help with generating both positive and
+negative inputs for a given regular expressions.
+
+We propose an algorithm to generate languages matched by \emph{generalized}
+regular expressions with union, intersection and complement operator.
+The complement operator allows us to generate both positive and negative inputs
+for a given regular expression, thus removing the need for an oracle.
+We implement our generator in \haskell and \ocaml,
+and show that its performances are more than
+adequate for the purpose of testing.
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: "main"
+%%% End:

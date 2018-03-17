@@ -1,24 +1,46 @@
 \section{Conclusions and Future Work}
 \label{sec:conclusions}
 
+In this article, we presented an algorithm to generate the language
+of a \emph{generalized} regular expression with union, intersection
+and complement operators. Using this technique, we can generate both
+positive and negative instance of a regular expression, thus enabling
+easier testing of regular expression parsers without an oracle.
+We provide two implementations: one in \haskell which explores
+different algorithmic improvements and one in \ocaml which evaluates choices
+in data structures. We then measured the performance of these implementations.
 
-In \cref{sec:bench}, we saw that the performance of our generator highly depends
+Even though our implementations are not heavily optimized, our approach generates
+languages at a rate that is more than sufficient for testing
+purposes, between $1.3\cdot10^3$ and $1.4\cdot10^6$ strings per seconds.
+We can now to combine our generator with property based testing
+to test regular expression parsers on randomly-generated regular expressions.
+While our approach eliminated the need for an oracle, the burden of correctness
+now lies on the language generator. We would like to implement our algorithm
+in Agda and prove its correctness and its productivity.
+
+We also want to extend our approach to a more general context.
+Notably, we can consider new regular expression operators.
+While some operators are very easy to implement, such as option and generalized repetition,
+other would cause some additional challenge, such as lookaround and boundaries
+operators. We can also consider non-regular operators! Indeed, our approach
+is compositional, and can thus scale to decidable languages.
+It remains to be seen if context free languages can also be generated
+with this method.
+Representing regular languages as formal power series provides numerous avenues
+for extensions. In this article, we used the semiring
+of languages of size $n$. Other semirings might also yield interesting
+algorithms. For instance, using the stream of boolean coefficients would
+allow to generate the language and its complement in one go. We could
+also use a richer semiring to generate \emph{weighted} words.
+
+Finally, in \cref{sec:bench}, we saw that the performance of our
+generator highly depends
 both on the shape of the language and the shape of the regular expression.
 We noticed a rough correlation with the size of each segments, but did not
 provide a more precise account. One might wonder if such an account is possible
 and if yes, can we use this information to improve language generation
-(by transforming a regular expression to an equivalent yet more efficient one).
-
-
-Generalize to words with weights by replacing boolean with another semiring.
-
-Generate CFLs in this way?
-
-Any decidable language can be enumerated in this way!
-
-Faithful representation as a formal power series: stream of coefficients from a semiring.
-
-Amenable to formalization in Agda?
+by transforming a regular expression to an equivalent yet more efficient one.
 
 %%% Local Variables:
 %%% mode: latex
