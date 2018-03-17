@@ -218,14 +218,14 @@ but we do not include the code in the paper, as it is a
 straightforward, but tedious variation of the code in
 Figure~\ref{fig:concatenation-with-convolution}. 
 
-\subsubsection{Map Data Structure}
+\subsubsection{Map Data Structure}\label{sec:map-data-structure}
 Alternatively, we could store the segments of \code{lx} and \code{ly}
 up to length \code{n} in a map data structure of type
 \code{Data.Map.Map Int [T.Text]}, which maps the number $i$ to the
 segment that contains the words of length $i$. This change would bring
 down the quadratic complexity to $O (n\log n)$. 
 
-\subsubsection{Sparse Indexing}
+\subsubsection{Sparse Indexing}\label{sec:sparse-indexing}
 Along with the recursive calls of \code{collect}, we could accumulate
 a list/set of indexes for \code{lx} and \code{ly} such that the
 corresponding segments are non-empty. With this information, the
