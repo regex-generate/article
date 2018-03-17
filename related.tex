@@ -49,8 +49,8 @@ Since the introduction of QuickCheck~\cite{DBLP:conf/icfp/ClaessenH00},
 property testing and test-data generation has been used successfully in a
 wide variety of contexts.
 In property testing, input data for the function
-to test is described via a set of combinators, and generated via
-a pseudo-random number generator. One difficulty of this approach is
+to test is described via a set of combinators while the actual generation
+is driven by a pseudo-random number generator. One difficulty of this approach is
 to find the correct distribution of inputs that will generate challenging
 test cases. This is particular troublesome for testing of regular expressions
 since, as we highlighted in \cref{sec:motivation}, many languages
