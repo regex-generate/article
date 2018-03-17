@@ -70,7 +70,7 @@ In the evaluation, we consider five variants of the Haskell implementation.
 
 \begin{figure}[tp]
   \centering
-  \includegraphics[height=0.33\linewidth]{measure/haskell_all.png}
+  \includegraphics[width=\linewidth]{measure/haskell_all.png}
   \caption{Benchmark for the \haskell implementation with various algorithms}
   \label{bench:haskell:all}
 \end{figure}
@@ -122,10 +122,10 @@ remarks:
 \label{sec:bench:ocaml}
 \begin{figure}[tp]
   \centering
-  \includegraphics[height=0.33\linewidth]{measure/ocaml_all.png}
+  \includegraphics[width=\linewidth]{measure/ocaml_all.png}
   \caption{Benchmark for the \ocaml implementation with various data-structures}
   \label{bench:ocaml:all}
-  \includegraphics[height=0.33\linewidth]{measure/ocaml_union.png}
+  \includegraphics[width=0.66\linewidth]{measure/ocaml_union.png}
   \caption{Benchmarking \texttt{union} in the \ocaml data-structures}
   \label{bench:ocaml:union}
 \end{figure}
@@ -187,13 +187,13 @@ strict sets and tries is surprisingly poor.
 \subsection{The Influence of Regular Expressions on Performance}
 \begin{figure}[tp]
   \centering
-  \begin{subfigure}[t]{0.45\linewidth}
+  \begin{subfigure}[t]{0.5\linewidth}
     \centering
     \includegraphics[width=\linewidth]{measure/haskell_langs.png}
     \caption{\haskell implementation with \code{segConv}}
     \label{bench:haskell:langs}
-  \end{subfigure}
-  \begin{subfigure}[t]{0.45\linewidth}
+  \end{subfigure}~
+  \begin{subfigure}[t]{0.5\linewidth}
     \centering
     \includegraphics[width=\linewidth]{measure/ocaml_langs.png}
     \caption{\ocaml implementation with \code{ThunkList}}

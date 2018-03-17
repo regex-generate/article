@@ -2,7 +2,7 @@
 
 # set terminal x11 size 700,700 font 'Deja Vu Sans Mono,14' persist
 
-set terminal pngcairo transparent size 1000,700 rounded font 'Deja Vu Sans,15'
+set terminal pngcairo transparent size 1000,900 rounded font 'Deja Vu Sans,18'
 set output 'ocaml_langs.png'
 
 # set terminal tikz standalone size 15,6 textscale 0.5
@@ -29,15 +29,15 @@ set logscale y
 # Put the legend at the bottom left of the plot
 set key right bottom
 
-set style line 1 lt 1 lc rgb "#1b9e77" lw 3 pt 7 ps 1.5 dt solid
-set style line 2 lt 1 lc rgb "#d95f02" lw 3 pt 11 ps 1.5 dt ". "
-set style line 3 lt 1 lc rgb "#7570b3" lw 3 pt 9 ps 1.5 dt "-"
-set style line 4 lt 1 lc rgb "#e7298a" lw 3 pt 7 ps 1.5 dt solid
-set style line 5 lt 1 lc rgb "#66a61e" lw 3 pt 7 ps 1.5 dt "_. "
-set style line 6 lt 1 lc rgb "#e6ab02" lw 3 pt 7 ps 1.5 dt ". "
-set style line 7 lt 1 lc rgb "#a6761d" lw 3 pt 7 ps 1.5 dt "-"
+set style line 1 lt 1 lc rgb "#1b9e77" lw 4 pt 7 ps 1.5 dt solid
+set style line 2 lt 1 lc rgb "#d95f02" lw 4 pt 11 ps 1.5 dt ". "
+set style line 3 lt 1 lc rgb "#7570b3" lw 4 pt 9 ps 1.5 dt "-"
+set style line 4 lt 1 lc rgb "#e7298a" lw 4 pt 7 ps 1.5 dt solid
+set style line 5 lt 1 lc rgb "#66a61e" lw 4 pt 7 ps 1.5 dt "_. "
+set style line 6 lt 1 lc rgb "#e6ab02" lw 4 pt 7 ps 1.5 dt ". "
+set style line 7 lt 1 lc rgb "#a6761d" lw 4 pt 7 ps 1.5 dt "-"
 
-re = 'a* a*b ba* (ab*)* ~(a*)b ((a|b)(a|b))* (1(01*0)*1|0)* ~(a*)|~(b*)'
+re = 'a* a*b ba* (ab*)* ~(a*)b ((a|b)(a|b))* (1(01*0)*1|0)* ~(a*)&~(b*)'
 algo = "ThunkList"
 
 plot for [i = 1:words(re)] word(re,i)."_".algo."_ocaml.csv" using 2:($1/10000) title word(re,i) noenhanced with lines ls i
