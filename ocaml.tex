@@ -6,7 +6,9 @@
 In addition to the \haskell implementation, we implemented the language generator
 in \ocaml.
 The \ocaml version only implements the ``latest'' version of the
-algorithm with a segmented representation and fast backward lookup for concatenation and star.
+algorithm with a segmented representation and fast backward lookup and convolutions
+for concatenation and star.
+It however doesn't implement the symbolic representation of segments.
 % One of the goal of this implementation was to test
 % pure \ocaml regular expression libraries such as ocaml-re\footnote{\url{https://github.com/ocaml/ocaml-re}} and
 % mulet\footnote{\url{https://github.com/let-def/mulet}}. 
