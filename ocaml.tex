@@ -349,24 +349,25 @@ the n-way merge and the product, which can be implemented using folds and unions
 
 \subsubsection{Tries}
 
-Tries are prefix trees where each branch is labeled with
-a character. A word is considered to belong to the trie if it is possible to
-follow its character through branches of the tries and reach a value. 
+Tries \cite{Fredkin1960} are prefix trees where each branch is labeled
+with a character and each node may contain a value. A trie 
+represents a mapping from a set of words and a word belongs to its domain if there is a
+path reaching a value labeled with the characters in the word.
 Tries seem well adapted to our problem:
 \begin{itemize}
-\item All words in a segment are of the same length. Thus, they are never prefixes
-  of one another and we can use tries where values are only
-  at the leaves.
+\item All words in a segment have the same length. As no prefixes need
+  to be represented, we can elide the values at inner nodes and tries
+  where values are only at the leaves.
 \item The \code{append} operation on tries can be implemented by
   grafting the second trie to all the leaves of the first one.
 \end{itemize}
 
-As such, we can implement tries similarly to tries of integers as described
+Hence, we can implement tries similarly to tries of integers as described
 by \citet{Okasaki98fastmergeable}.
-For the sake of simplicity, we decide not to use path compression, which mean
-that branches will always contain only one char.
-A trie is then either empty, a leaf containing a value or a Node containing a map from characters
-to children of the trie. Since the only value we are interested in are the path themselves, we use tries with unit values. 
+For simplicity, we do not use path compression, which means
+that branches are always labeled with one character.
+A trie is then either \code{Empty}, a \code{Leaf} containing a value, or a \code{Node} containing a map from characters
+to its child tries. As we are only interested in the paths, we use tries with unit values. 
 
 \begin{lstlisting}
 type 'a trie =
@@ -377,10 +378,9 @@ type 'a trie =
 type t = unit trie
 \end{lstlisting}
 
-The implementation of most operations follow the literature closely. The only
-novel operation is \code{append}, which can be implemented using a simple
-recursive walk. Note how the value t0 is not copied, thus enabling
-a high degree of sharing between the tries.
+The implementation of most operations follows the literature
+closely. The only novel operation is \code{append}, which can be
+implemented in a single traversal.
 
 \begin{lstlisting}
 let rec append t t0 = match t with
@@ -389,10 +389,9 @@ let rec append t t0 = match t with
   | Node map -> M.map (fun t' -> append t' t0) map in
 \end{lstlisting}
 
-This implementation of append relies on the fact that we do not store
-values at the leaf. If we were to store, for instance, the path to the leaf,
-we would have to modify all the leafs of the tries. This would be both
-expansive to compute and lose the sharing among tries at the leaves.
+The implementation of \code{append} relies on the fact that we do not store
+values at the leaves. Hence, the appended trie \code{t0} need not by
+copied, which is more efficient and leads to a high degree of sharing between the tries.
 
 %%% Local Variables:
 %%% mode: latex
