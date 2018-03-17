@@ -294,7 +294,7 @@ The resulting generation algorithm solves our previous problem
 with $\Lang{\Rcomplement{(\Rcomplement{\Rnull})}} = \emptyset$,
 because it evaluates to \code{Empty}. Also, $\Lang{\Rcomplement{a}}$
 evaluates to a finite representation:\footnote{We use string notation
-  for elements of \lstinline{Data.Text.Text} for readability.}
+  for elements of \lstinline{Data.Text.Text} for readability. The bar in \lstinline{Full _} stands for the infinite list of full segments that need not be evaluated.}
 \begin{lstlisting}[numbers=none]
 Cons (Univ [""]) (Cons (Data ["b"]) (Full _))
 \end{lstlisting}
