@@ -125,6 +125,9 @@
     Consider the alphabet $\{a,b\}$ and the expression $a^*$. What is
     the probability that a randomly generated string is in $L (a^*)$?
   \end{block}
+  \begin{exampleblock}<+->{Answer}
+    TGIFLA!
+  \end{exampleblock}
 \end{frame}
 \begin{frame}
   \frametitle{Motivation (cont'd)}
@@ -210,8 +213,8 @@
 \begin{lstlisting}[numbers=none]
 import Data.Text as T
 
-type Alphabet = [Char]
-type Lang = [T.Text]
+type Alphabet = [Char]          -- finite list
+type Lang = [T.Text]            -- stream
 
 generate :: Alphabet -> GRE Char -> Lang
 \end{lstlisting}
@@ -229,14 +232,14 @@ generate :: Alphabet -> GRE Char -> Lang
 generate :: Alphabet -> GRE Char -> Lang
 generate sigma r = gen r
   where
-    gen Zero = []
-    gen One  = [T.empty]
-    gen (Atom t) = [T.singleton t]
-    gen (Or r s) = union (gen r) (gen s)
+    gen Zero      = []
+    gen One       = [T.empty]
+    gen (Atom t)  = [T.singleton t]
+    gen (Or r s)  = union (gen r) (gen s)
     gen (Dot r s) = concatenate (gen r) (gen s)
-    gen (Star r) = star (gen r)
+    gen (Star r)  = star (gen r)
     gen (And r s) = intersect (gen r) (gen s)
-    gen (Not r) = complement sigma (gen r)
+    gen (Not r)   = complement sigma (gen r)
 \end{lstlisting}
 \end{frame}
 \begin{frame}[fragile]
@@ -280,20 +283,28 @@ complement sigma lx =
     (subset of) languages.
     \begin{itemize}
     \item Unsatisfactory.
-    \item Inefficient because of
-    quadratic behavior of \code{List.union} and \code{List.nub}.
+    \item 
+      Quadratic behavior of \code{List.union} and \code{List.nub}.
   \end{itemize}
   \end{block}
 \end{frame}
 
 \begin{frame}
   \frametitle{Questions}
+  \LARGE
   \begin{itemize}
   \item Can we do better?
-  \item Can we support finite and infinite languages?
-  \item Can we avoid extraneous quadratic behavior?
+  \item Can we support infinite languages?
+  \item Can we avoid quadratic behavior?
   \end{itemize}
+  \onslide<2->{
+    \Huge
+    \begin{center}
+      \includegraphics[scale=0.25]{YES_JUST_YES}
+    \end{center}
+  }
 \end{frame}
+\section{Ordered Enumeration}
 \begin{frame}[fragile]
   \frametitle{Ordered Enumeration}
   \vspace{-\baselineskip}
@@ -351,7 +362,8 @@ concatenate (x:xt) ly@(y:yt) =
 star :: Lang -> Lang
 star [] = [T.empty]
 star lx@(x:xt)
-  | x == T.empty = star xt
+  | x == T.empty =
+    star xt
   | otherwise =
     T.empty : concatenate lx (star lx)
 \end{lstlisting}
@@ -371,7 +383,7 @@ complement sigma lx = difference lsigmastar lx
   \frametitle{What did we achieve so far?}
   \begin{itemize}
   \item<+-> efficient definitions for all operations needed in extended regular expressions
-  \item<+-> productive definitions for for \code{union},
+  \item<+-> productive definitions for \code{union},
     \code{intersection}, \code{concatenate}, \code{star}
   \end{itemize}
   \begin{block}<+->{But}
@@ -386,8 +398,12 @@ complement "ab" (star (map T.singleton "ab"))
 \end{lstlisting}
   \end{exampleblock}
 \end{frame}
+
+\section{Segmented Representation}
+
+
 \begin{frame}
-  \frametitle{Towards a Different Representation for Languages}
+  \frametitle{Segmented Representation for Languages}
   \vspace{-\baselineskip}
   \begin{block}<+->{Inspiration: Formal Power Series}
     Represent language by a power series    where, for all $n$, $L_n \subseteq \Sigma^n$.
@@ -447,11 +463,12 @@ complement "ab" (star (map T.singleton "ab"))
   \framesubtitle{Product}
   \vspace{-2\baselineskip}
   \begin{align*}
-    (L \cdot M)_n & = \bigcup_{i=0}^n L_i \cdot M_{n-i}
+    (L \cdot M)_n & = \bigcup_{i=0}^n L_i \cdot M_{n-i} & \text{a convolution}
   \end{align*}
   \begin{align*}
-    \code{lx} &= [L_0, L_1, L_2, \dots ] & \text{given}\\
-    \code{mxrev} &= [M_n, M_{n-1}, \dots , M_0] & \text{compute incrementally}
+    & \text{given} & \code{lx} &= [L_0, L_1, L_2, \dots ]\\
+     & \text{compute incrementally} &
+    \code{mxrev} &= [M_n, M_{n-1}, \dots , M_0]
   \end{align*}
   \begin{block}<2->{Implementation}
 \begin{lstlisting}[numbers=none]
@@ -474,7 +491,7 @@ concatenate lx mx = collect mx []
     (L^*)_{n+1} & = \bigcup_{i=0}^n L_{i+1} \cdot (L^*)_{n-i}
                   &&= \bigcup_{i=0}^n L_{n+1-i} \cdot (L^*)_i
   \end{align*}
-  \begin{block}{Implementation}
+  \begin{block}<2->{Implementation}
 \begin{lstlisting}[numbers=none]
 star lx = slx
   where
@@ -503,6 +520,7 @@ star lx = slx
   \frametitle{Benchmarks}
     \begin{itemize}
     \item Implementations in Haskell and OCaml
+    \item \url{https://drup.github.io/regenerate/}
     \end{itemize}
 \end{frame}
 \begin{frame}
@@ -519,7 +537,7 @@ star lx = slx
     \item finite automata
     \item context-free grammars
     \item conjunctive grammars
-    \item any decidable language representable as a stream of segments \dots
+    \item any decidable language representable as a stream of segments 
     \end{itemize}
   \end{block}
 \end{frame}
