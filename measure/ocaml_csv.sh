@@ -17,7 +17,7 @@ function genH {
     regenerate prof \
         -a "ab" -s20 \
         -i "$1" \
-        "$2" > "$file"
+        "$2" > "$file" || true
 }
 
 function go {
