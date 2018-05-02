@@ -1,6 +1,6 @@
 %% 30 minutes
 
-\documentclass[pdftex]{beamer}
+\documentclass[pdftex,aspectratio=169]{beamer}
 %\setbeameroption{show notes}
 \usepackage[T1]{fontenc}
 \usepackage[utf8x]{inputenc}
@@ -431,6 +431,7 @@ complement "ab" (star (map T.singleton "ab"))
 \end{frame}
 \begin{frame}
   \frametitle{More Operations}
+  \vspace{-\baselineskip}
   \begin{block}{Star Operation}
     \vspace{-\baselineskip}
     \begin{align*}
@@ -476,8 +477,7 @@ concatenate lx mx = collect mx []
   where -- hidden lemma
     collect (mxh:mx') mxrev =
       let mxrev' = mxh:mxrev in
-        foldr S.union S.empty
-        (zipWith T.append lx mxrev') :
+        foldr S.union S.empty (zipWith T.append lx mxrev') :
         collect mx' mxrev'
 \end{lstlisting}
   \end{block}
@@ -499,8 +499,7 @@ star lx = slx
           collect (tail lx) []
     collect (lxh:lx') lxrev =
       let lxrev' = lxh:lxrev in
-        foldr S.union S.empty
-        (zipWith T.append lxrev' slx) :
+        foldr S.union S.empty (zipWith T.append lxrev' slx) :
         collect lx' lxrev'
 \end{lstlisting}
   \end{block}
@@ -516,12 +515,48 @@ star lx = slx
   \end{itemize}
 \end{block}
 \end{frame}
+\section{Implementation}
 \begin{frame}
-  \frametitle{Benchmarks}
+  \frametitle{Implementation}
+  \begin{itemize}
+  \item Implementations in Haskell and OCaml
+  \item Web demo \url{https://drup.github.io/regenerate/}
+  \end{itemize}
+\end{frame}
+\begin{frame}
+  \frametitle{Benchmark Expressions}
+  \vspace{-\baselineskip}
+  \begin{block}{Three Example Expressions}
     \begin{itemize}
-    \item Implementations in Haskell and OCaml
-    \item \url{https://drup.github.io/regenerate/}
+    \item $\Rstar a$: a very small language with $P (w\in L) = 0$.
+      
+      Stresses append as word length increases very quickly.
+      
+      Input: one segment; output: all segments with exactly one element. 
+    \item $\Rstar{(\Rconcat{a}{\Rstar{b}})}$: a large language
+      with $P (w\in L)=0.5$.
+
+      Applies \code{star} to a language where segment $n+1$ consists of the word $ab^n$.
+
+      Measures performance of \code{star} on a non-sparse
+      language and of {concatenation} applied to a finite and an infinite
+      language.
+    \item $\Rconcat{\Rcomplement{(\Rstar{a})}}{b}$: a large language with
+      $P (w\in L) = 0.5$.
+      
+      Exercises the complement operation.
+
+      Tests the concatenation of a very large language
+      $P (w\in \Lang{\Rcomplement{(\Rstar a)}}) = 1$ with a small
+      finite language.
     \end{itemize}
+  \end{block}
+\end{frame}
+\begin{frame}
+  \frametitle{Performance of the Haskell Implementation}
+  \begin{center}
+    \includegraphics[width=\linewidth]{../measure/haskell_all.png}
+  \end{center}
 \end{frame}
 \begin{frame}
   \frametitle{Conclusions}
