@@ -21,7 +21,8 @@ All we need is a data structure that supports the power series
 operations.
 
 To facilitate such experimentation, we implemented the generator
-algorithm as a functor whose signature is shown in \cref{code:sigs}.
+algorithm as a functor whose signature is shown in
+\cref{code:sigs:segment,code:sigs:word,code:sigs:regen}.
 The functor takes two data structures as arguments: words and segments.
 This structuring allows us to test numerous representations easily without changing
 the code. It also forced us to find the ``minimal'' set of operations
@@ -29,7 +30,6 @@ needed to implement the algorithm.
 
 \begin{figure}[tp]
   \centering
-  \begin{subfigure}{0.44\linewidth}
 \begin{lstlisting}[basicstyle=\scriptsize\ttfamily]
 module type SEGMENT = sig
   type elt (** Elements *)
@@ -62,8 +62,7 @@ end
 \end{lstlisting}
     \caption{Operations on segments}
     \label{code:sigs:segment}
-  \end{subfigure}~
-  \begin{subfigure}{0.57\linewidth}
+    
 \begin{lstlisting}[basicstyle=\scriptsize\ttfamily]
 module type WORD = sig
   type char
@@ -75,22 +74,19 @@ end
 \end{lstlisting}
     \caption{Operations on words}
     \label{code:sigs:word}
+    
 \begin{lstlisting}[basicstyle=\scriptsize\ttfamily]
 module Regenerate
     (Word : WORD)
     (Segment : Segments.S with type elt = Word.t)
 : sig
   type lang = Segment.t stream
-  val gen : 
-    sigma:Segment.t -> C.t regex -> lang
+  val gen : sigma:Segment.t -> C.t regex -> lang
   val iter : lang -> (Word.t -> unit) -> unit
 end
 \end{lstlisting}
     \caption{Language generation as a functor}
     \label{code:sigs:regen}
-  \end{subfigure}
-  \caption{Signatures of the language generator}
-  \label{code:sigs}
 \end{figure}
 
 \paragraph{Characters and Words}
@@ -386,7 +382,7 @@ implemented in a single traversal.
 let rec append t t0 = match t with
   | Empty -> Empty
   | Leaf () -> t0
-  | Node map -> M.map (fun t' -> append t' t0) map in
+  | Node map -> M.map (fun t' -> append t' t0) map
 \end{lstlisting}
 
 The implementation of \code{append} relies on the fact that we do not store

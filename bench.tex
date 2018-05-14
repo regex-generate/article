@@ -68,12 +68,12 @@ In the evaluation, we consider five variants of the Haskell implementation.
   combined with convolution.
 \end{itemize}
 
-\begin{figure}[tp]
+\begin{figure*}[btp]
   \centering
-  \includegraphics[width=\linewidth]{measure/haskell_all.png}
+  \includegraphics[width=\textwidth]{measure/haskell_all.png}
   \caption{Benchmark for the \haskell implementation with various algorithms}
   \label{bench:haskell:all}
-\end{figure}
+\end{figure*}
 To evaluate the performance, we iterate through the stream of words
 produced by the generator and force their evaluation.\footnote{In
   Haskell, forcing is done using \lstinline{Control.DeepSeq}.} Every
@@ -120,7 +120,7 @@ remarks:
 
 \subsection{Comparing Data Structures in the \ocaml Implementation}
 \label{sec:bench:ocaml}
-\begin{figure}[tp]
+\begin{figure*}[tp]
   \centering
   \includegraphics[width=\linewidth]{measure/ocaml_all.png}
   \caption{Benchmark for the \ocaml implementation with various data-structures}
@@ -128,7 +128,7 @@ remarks:
   \includegraphics[width=0.66\linewidth]{measure/ocaml_union.png}
   \caption{Benchmarking \texttt{union} in the \ocaml data-structures}
   \label{bench:ocaml:union}
-\end{figure}
+\end{figure*}
 
 By now, we have established that the \textbf{refConv} algorithm
 provides the best overall performance.  The \haskell implementation,
@@ -185,7 +185,7 @@ languages but less so when concatenation is involved. Performance of
 strict sets and tries is surprisingly poor.
 
 \subsection{The Influence of Regular Expressions on Performance}
-\begin{figure}[tp]
+\begin{figure*}[tp]
   \centering
   \begin{subfigure}[t]{0.5\linewidth}
     \centering
@@ -201,7 +201,7 @@ strict sets and tries is surprisingly poor.
   \end{subfigure}
   \caption{Benchmark on different regular expressions}
   \label{bench:langs}
-\end{figure}
+\end{figure*}
 
 The benchmark results so far demonstrate that the performance of the language
 generator highly depends on the structure of both
