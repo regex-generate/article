@@ -55,11 +55,25 @@ because it aims to find bounds on the number of languages that can be
 represented with regular expressions and automata of a certain size.
 
 \citet{DBLP:journals/tcs/AckermanS09} improve on M{\"{a}}kinen's
-algorithm by working directly on a nondeterministic finite
-automaton. They critize his complexity analysis, which assumes unit
-cost for comparison and concatenation operations on words and does not
-account for the size $s$ of the automaton, and obtain $O (s^2n^2)$ for
-the computation of minimal words.
+algorithm by working directly on a nondeterministic finite automaton
+and by proposing more efficient algorithms to compute minimal words of
+a given length and to proceed to the next word of same length in the
+language. An empirical study compares a number of variations of the
+enumeration algorithm.
+
+Their enumeration algorithm iteratively invokes a cross-section
+enumeration, where the $n^{\text{th}}$ cross-section of a language $L$ is
+$L \cap \Sigma^n$, that is, a segment in our terminology.
+
+Compared to our work, Ackerman's approach does not incur an
+exponential blowup when converting from a regular expression. As it is based on
+nondeterministic finite automata, complementation cannot readily be
+supported. Moreover, the approach is not compositional.
+
+% They critize his complexity analysis, which assumes unit
+% cost for comparison and concatenation operations on words and does not
+% account for the size $s$ of the automaton, and obtain $O (s^2n^2)$ for
+% the computation of minimal words.
 
 
 \subsubsection*{Language Generation}
