@@ -26,6 +26,9 @@ productive definition by segments because the computation of minimal
 and maximal words could be done incrementally, but which is not mentioned
 in the paper.
 
+% Implementation of McIlroy
+% % https://github.com/tadeboro/reglang
+
 \citet{DBLP:journals/jfp/McIlroy04} implements the enumeration of all
 strings of a regular language in Haskell. He develops two approaches,
 one based on interpreting regular expressions, the other (unrelated to
@@ -49,11 +52,6 @@ the output string).  Moreover, the generation method is reported to
 be very inefficient and thus not suitable for generating test inputs
 at a large scale.
 
-\citet{DBLP:conf/wia/LeeS04} discuss enumerating regular expressions
-and their languages. Despite the title, this work is unrelated
-because it aims to find bounds on the number of languages that can be
-represented with regular expressions and automata of a certain size.
-
 \citet{DBLP:journals/tcs/AckermanS09} improve on M{\"{a}}kinen's
 algorithm by working directly on a nondeterministic finite automaton
 and by proposing more efficient algorithms to compute minimal words of
@@ -65,7 +63,12 @@ Their enumeration algorithm iteratively invokes a cross-section
 enumeration, where the $n^{\text{th}}$ cross-section of a language $L$ is
 $L \cap \Sigma^n$, that is, a segment in our terminology.
 
-Compared to our work, Ackerman's approach does not incur an
+\citet{DBLP:conf/cocoon/AckermanM09} present three further
+improvements on their enumeration algorithms that exhibit better
+asymptotic complexity. Their empirical study indicates that the
+improved algorithms perform better in practice.
+
+Compared to our work, Ackerman's approach and its subsequent improvement does not incur an
 exponential blowup when converting from a regular expression. As it is based on
 nondeterministic finite automata, complementation cannot readily be
 supported. Moreover, the approach is not compositional.
@@ -74,6 +77,13 @@ supported. Moreover, the approach is not compositional.
 % cost for comparison and concatenation operations on words and does not
 % account for the size $s$ of the automaton, and obtain $O (s^2n^2)$ for
 % the computation of minimal words.
+
+As one example of a line of unrelated work with deceivingly similar
+titles, \citet{DBLP:conf/wia/LeeS04} discuss enumerating regular
+expressions and their languages. The goal of this work is aims to find
+bounds on the \textbf{number of languages} that can be represented
+with regular expressions and automata of a certain size.
+
 
 
 \subsubsection*{Language Generation}
