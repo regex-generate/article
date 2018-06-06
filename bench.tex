@@ -68,12 +68,12 @@ In the evaluation, we consider five variants of the Haskell implementation.
   combined with convolution.
 \end{itemize}
 
-\begin{figure*}[btp]
+\begin{figure}[!tp]
   \centering
-  \includegraphics[width=\textwidth]{measure/haskell_all.png}
+  \includegraphics[width=\linewidth]{measure/haskell_all.png}
   \caption{Benchmark for the \haskell implementation with various algorithms}
   \label{bench:haskell:all}
-\end{figure*}
+\end{figure}
 To evaluate the performance, we iterate through the stream of words
 produced by the generator and force their evaluation.\footnote{In
   Haskell, forcing is done using \lstinline{Control.DeepSeq}.} Every
@@ -120,15 +120,12 @@ remarks:
 
 \subsection{Comparing Data Structures in the \ocaml Implementation}
 \label{sec:bench:ocaml}
-\begin{figure*}[tp]
+\begin{figure}[!tp]
   \centering
   \includegraphics[width=\linewidth]{measure/ocaml_all.png}
   \caption{Benchmark for the \ocaml implementation with various data-structures}
   \label{bench:ocaml:all}
-  \includegraphics[width=0.66\linewidth]{measure/ocaml_union.png}
-  \caption{Benchmarking \texttt{union} in the \ocaml data-structures}
-  \label{bench:ocaml:union}
-\end{figure*}
+\end{figure}
 
 By now, we have established that the \textbf{refConv} algorithm
 provides the best overall performance.  The \haskell implementation,
@@ -167,6 +164,13 @@ the regular expression considered.
   that the linear cost of memoizing the thunk list and allocating the vectors
   is higher than simply recomputing lists.
 \end{itemize}
+
+
+\begin{figure}[!tp]
+  \includegraphics[width=\linewidth]{measure/ocaml_union.png}
+  \caption{Benchmarking \texttt{union} in the \ocaml data-structures}
+  \label{bench:ocaml:union}
+\end{figure}
 
 While the regular expressions presented previously do exercise
 \code{concatenation} and \code{star}, they do not exercise set
@@ -242,10 +246,9 @@ indices. Briefly put, long strings are harder to generate than short
 ones.
 
 Regarding symmetry, we find that the generation of $\Rstar{a}b$ and
-$b\Rstar{a}$ has the same performance in the \haskell implementation.
-The \ocaml version does not behave symmetrically, because it does not
-implement the improved convolution technique with detection of finite
-languages, as described in \cref{sec:convolution}.
+$b\Rstar{a}$ has the same performance in both implementations,
+thanks to the improved convolution technique
+with detection of finite languages described in \cref{sec:convolution}.
 
 
 
