@@ -6,64 +6,31 @@
 In addition to the \haskell implementation, we implemented the language generator
 in \ocaml.
 The \ocaml version only implements the ``latest'' version of the
-algorithm with a segmented representation and fast backward lookup and convolutions
-for concatenation and star.
-It however doesn't implement the symbolic representation of segments
-discussed in \cref{sec:more-finite-repr}.
+algorithm with a segmented representation, fast backward lookup and convolutions
+for concatenation and star and symbolic representation of segments.
 % One of the goal of this implementation was to test
 % pure \ocaml regular expression libraries such as ocaml-re\footnote{\url{https://github.com/ocaml/ocaml-re}} and
 % mulet\footnote{\url{https://github.com/let-def/mulet}}. 
 The main goal of this implementation is to experiment with strictness
 and various data structures for segments. 
-The key idea is that the internal order on words in a segment does not matter,
-because each segment only contains words of the same length.
+The key idea is that the internal order on words in a segment does not matter
+since each segment only contains words of the same length.
 All we need is a data structure that supports the power series
 operations.
 
 To facilitate such experimentation, we implemented the generator
 algorithm as a functor whose signature is shown in
 \cref{code:sigs:segment,code:sigs:word,code:sigs:regen}.
-The functor takes two data structures as arguments: words and segments.
-This structuring allows us to test numerous representations easily without changing
+In \ocaml, functors are parameterized modules that take modules
+as argument and return modules. Our implementation
+takes two data structures as arguments, words and segments,
+which allows us to test numerous representations easily without changing
 the code. It also forced us to find the ``minimal'' set of operations
 needed to implement the algorithm.
 
 \begin{figure}[tp]
   \centering
-\begin{lstlisting}[basicstyle=\scriptsize\ttfamily]
-module type SEGMENT = sig
-  type elt (** Elements *)
-  type t (** Segments *)
-
-  val empty : t
-  val is_empty : t -> bool
-  val return : elt -> t
-
-  (** Set operations *)
-  val union : t -> t -> t
-  val inter : t -> t -> t
-  val diff : t -> t -> t
-
-  (** Product *)
-  val append: t -> t -> t
-
-  (** n-way merge *)
-  val merge : t list -> t
-
-  (** Import a list *)
-  val of_list : elt list -> t
-
-  (** Export elements *)
-  val iter : t -> (elt -> unit) -> unit
-
-  (** For transient data-structures *)
-  val memoize : t -> t
-end
-\end{lstlisting}
-    \caption{Operations on segments}
-    \label{code:sigs:segment}
-    
-\begin{lstlisting}[basicstyle=\scriptsize\ttfamily]
+\begin{lstlisting}
 module type WORD = sig
   type char
   type t
@@ -74,14 +41,41 @@ end
 \end{lstlisting}
     \caption{Operations on words}
     \label{code:sigs:word}
+
+\begin{lstlisting}
+module type SEGMENT = sig
+  type elt (* Elements *)
+  type t (* Segments *)
+
+  val empty: t
+  val is_empty: t -> bool
+  val return: elt -> t
+
+  (* Set operations *)
+  val union: t -> t -> t
+  val inter: t -> t -> t
+  val diff: t -> t -> t
+  val append: t -> t -> t
+  val merge: t list -> t
+
+  (* Import/Export *)
+  val of_list: elt list -> t
+  val iter: t -> (elt -> unit) -> unit
+
+  (** For transient data-structures *)
+  val memoize: t -> t
+end
+\end{lstlisting}
+    \caption{Operations on segments}
+    \label{code:sigs:segment}
     
-\begin{lstlisting}[basicstyle=\scriptsize\ttfamily]
+\begin{lstlisting}
 module Regenerate
     (Word : WORD)
     (Segment : Segments.S with type elt = Word.t)
 : sig
-  type lang = Segment.t stream
-  val gen : sigma:Segment.t -> C.t regex -> lang
+  type lang
+  val gen : Segment.t -> Word.char regex -> lang
   val iter : lang -> (Word.t -> unit) -> unit
 end
 \end{lstlisting}
@@ -92,7 +86,8 @@ end
 \paragraph{Characters and Words}
 
 \autoref{code:sigs:word} contains the signature for words.
-Surprisingly few operations are needed. We need to build the empty word (for \code{One}),
+Surprisingly few operations are needed, we only require
+the empty word (for \code{One}),
 singleton words (for \code{Atom}), and to append two words.
 Neither an ordering nor a length operation is needed for words:
 Comparison is encapsulated in the segment
@@ -114,7 +109,7 @@ For the set operations, we need the functions
 \code{union}, \code{inter} and \code{inter}.
 %
 The product described in \autoref{eq:1} is decomposed in two parts:
-\begin{itemize}
+\begin{itemize}[leftmargin=*]
 \item An \code{append} function which implements $U_i V_{n-i}$. It computes the
   product of two segments by pairwise appending their elements.
 \item A \code{merge} operation which computes the union of an arbitrary number
@@ -124,8 +119,8 @@ The product described in \autoref{eq:1} is decomposed in two parts:
 %
 As the goal is to experiment with different data structures, we want
 to use implementations that are transient by default. We thus require 
-a function \code{memoize} that avoids recomputing segments accessed
-multiple times, which happens when computing the concatenation or the closure of languages. 
+an explicit \code{memoize} function that avoids recomputing segments accessed
+multiple times. 
 %
 Finally, the functions  \code{of_list} and \code{iter} import and
 export elements to and from a segment.
@@ -133,27 +128,27 @@ export elements to and from a segment.
 \subsection{Core Algorithm}
 
 The core algorithm is very similar to the Haskell version. The power series
-is implemented using a thunk list in the style of \citet{DBLP:conf/cpp/Pottier17}:
+is implemented using a thunk list in the style of \citet{DBLP:conf/cpp/Pottier17}
+with some special-purpose additions:
 
 \begin{lstlisting}
-type 'a node =
-  | Nil
-  | Cons of 'a * 'a stream
-type 'a stream = unit -> 'a node
+type node =
+  | Nothing
+  | Everything
+  | Cons of Segment.t * lang
+and lang = unit -> node
 \end{lstlisting}
 
-A stream is represented by a function which takes a unit argument and returns
-a node. A node, in turn, is either \code{Nil} or a \code{Cons} of an
-element and the tail of the stream. The empty stream, for instance, is
-represented as \code{fun () -> Nil}.
+An enumeration is represented by a function which takes a unit argument and returns
+a node. A node, in turn, is either \code{Nothing} or a \code{Cons} of an
+element and the tail of the sequence. The empty enumeration, for instance, is
+represented as \code{fun () -> Nothing}.
 This representation has several advantages\footnote{See
   \url{https://github.com/ocaml/ocaml/pull/1002} for a long discussion
   on the topic.}: it is lazy, fast, lightweight, and almost as easy to
-manipulate as regular lists. 
-It gives rise to a very natural representation for languages represented as power series:
-\begin{lstlisting}[numbers=none]
-type lang = Segment.t stream
-\end{lstlisting}
+manipulate as regular lists.
+The additional constructor \code{Everything} allow to manipulate
+full languages symbolically, as in \cref{sec:more-finite-repr}.
 
 The rest of the implementation is similar to the \haskell one. For instance,
 here is the implementation of the union of languages:
@@ -164,47 +159,47 @@ let rec union s1 s2 () = match s1(), s2() with
     Cons (Segment.union x1 x2, union next1 next2)
 \end{lstlisting}
 The trailing unit argument, \code{()}, is essential because it allows
-us to drive the evaluation of the stream lazily. With this definition, \code{union s1 s2}
+us to drive the evaluation of the sequence lazily. With this definition, \code{union s1 s2}
 will not cause  any evaluation until it is applied to \code{()}.
 
-The concatenation of languages demonstrates how the main algorithm can
-be expressed once the segment operations have been abstracted:.
-To build $U \cdot V$, we first build the $n$th term
-$(U \cdot V)_n = \bigcup_{i=0}^n U_i V_{n-i}$.
-We use both \code{Segment.append} to implement the product
-of segments and the concatenation of words and \code{Segment.merge} to merge
-all the resulting segments.
-\begin{lstlisting}
-let term_of_length map1 map2 n =
-  let combine_segments i =
-    Segment.append (IntMap.find i map1) (IntMap.find (n - i) map2)
-  in
-  List.(range 0 n) |> List.rev_map combine_segments |> Segment.merge
-\end{lstlisting}
+% The concatenation of languages demonstrates how the main algorithm can
+% be expressed once the segment operations have been abstracted:.
+% To build $U \cdot V$, we first build the $n$th term
+% $(U \cdot V)_n = \bigcup_{i=0}^n U_i V_{n-i}$.
+% We use both \code{Segment.append} to implement the product
+% of segments and the concatenation of words and \code{Segment.merge} to merge
+% all the resulting segments.
+% \begin{lstlisting}
+% let term_of_length map1 map2 n =
+%   let combine_segments i =
+%     Segment.append (IntMap.find i map1) (IntMap.find (n - i) map2)
+%   in
+%   List.(range 0 n) |> List.rev_map combine_segments |> Segment.merge
+% \end{lstlisting}
 
-We then collect all the terms by synchronized recursion over the power series $U$
-and $V$:
-\begin{lstlisting}
-let rec collect n map1 map2 seq1 seq2 () = match seq1 (), seq2 () with
-  | Cons (segm1, seq1), Cons (segm2, seq2) ->
-    let map1 = IntMap.add n (Segment.memoize segm1) map1 in 
-    let map2 = IntMap.add n (Segment.memoize segm2) map2 in
-    Cons (term_of_length map1 map2 n, collect (n+1) map1 map2 seq1 seq2)
-\end{lstlisting}
+% We then collect all the terms by synchronized recursion over the power series $U$
+% and $V$:
+% \begin{lstlisting}
+% let rec collect n map1 map2 seq1 seq2 () = match seq1 (), seq2 () with
+%   | Cons (segm1, seq1), Cons (segm2, seq2) ->
+%     let map1 = IntMap.add n (Segment.memoize segm1) map1 in 
+%     let map2 = IntMap.add n (Segment.memoize segm2) map2 in
+%     Cons (term_of_length map1 map2 n, collect (n+1) map1 map2 seq1 seq2)
+% \end{lstlisting}
 
-The \code{IntMap} module provides a functional implementation of maps
-keyed by integers. The maps are used to quickly access
-segments of smaller index that have been computed in earlier invocations of
-\code{collect}. As such segments are accessed
-multiple times, we use \code{memoize} to avoid computing them over and
-over again.
-Functional maps are sufficient because the size of a map is equal
-to the maximum word length, which does not get excessively large.
+% The \code{IntMap} module provides a functional implementation of maps
+% keyed by integers. The maps are used to quickly access
+% segments of smaller index that have been computed in earlier invocations of
+% \code{collect}. As such segments are accessed
+% multiple times, we use \code{memoize} to avoid computing them over and
+% over again.
+% Functional maps are sufficient because the size of a map is equal
+% to the maximum word length, which does not get excessively large.
 
-Finally, we initialize \code{collect} with empty maps.
-\begin{lstlisting}[numbers=none]
-let concatenate = collect 0 IntMap.empty IntMap.empty
-\end{lstlisting}
+% Finally, we initialize \code{collect} with empty maps.
+% \begin{lstlisting}[numbers=none]
+% let concatenate = collect 0 IntMap.empty IntMap.empty
+% \end{lstlisting}
 
 The biggest difference compared to the \haskell version relates to the use
 of recursion to define \code{star}-related operations.
@@ -218,7 +213,8 @@ A similar change was made for the definition of \code{star}.
 \begin{lstlisting}
 let sigma_star sigma =
   let rec collect acc () =
-    Iter.Cons (acc, collect (Segment.append sigma acc))
+    Iter.Cons 
+      (acc, collect (Segment.append sigma acc))
   in
   collect (Segment.return W.empty)
 \end{lstlisting}
@@ -226,19 +222,16 @@ let sigma_star sigma =
 
 \subsection{Data Structures}
 
-Now that we implemented the language generator parameterized by segments, we can
+Thanks to our parameterized implementation, we can
 experiment with various data structures for segments. We present a
 range of potential implementations before comparing their performance.
 
-\subsubsection{Ordered Streams}
+\subsubsection{Ordered enumerations}
 
 The \haskell implementation in \autoref{sec:ordered-enumeration}
-represents segments as ordered enumerations. We can use
-the same representation in \ocaml thanks to the \code{stream} datatype.
-\begin{lstlisting}[numbers=none]
-type t = elt stream
-\end{lstlisting}
-
+represents segments as ordered enumerations.
+We again use a thunk-list representation,
+which available in \ocaml as the \code{Seq} module.
 To use an order, we need a comparison and an
 \code{append} function on words.  The \code{OrderedMonoid} signature
 captures these requirements. \autoref{code:thunklist} shows the
@@ -252,43 +245,45 @@ module type OrderedMonoid = sig
   val compare : t -> t -> int
   val append : t -> t -> t
 end
-module ThunkList (Elt : OrderedMonoid) : SEGMENTS with type elt = Elt.t
+module ThunkList (Elt : OrderedMonoid) :
+  SEGMENTS with type elt = Elt.t
 \end{lstlisting}
   \caption{Signature for \texttt{ThunkList}}
   \label{code:thunklist}
 \end{figure}
 
-Most of the implementation is straightforward. For example, here is the
-\code{append} function, where \code{>>=} is bind (or \code{concatMap})
-and \code{>|=} is map.
+% Most of the implementation is straightforward. For example, here is the
+% \code{append} function, where \code{>>=} is bind (or \code{concatMap})
+% and \code{>|=} is map.
 
-\begin{lstlisting}
-let append l1 l2 =
-  l1 >>= fun x -> l2 >|= fun y -> Elt.append x y
-\end{lstlisting}
+% \begin{lstlisting}
+% let append l1 l2 =
+%   l1 >>= fun x -> l2 >|= fun y -> Elt.append x y
+% \end{lstlisting}
 
-The n-way merge is implemented using a priority heap which holds pairs composed
-of the head of a stream and its tail. When a new element is required in the
-merged stream, we pop the top element of the heap, deconstruct
+The only operation that is not straightforward is the n-way merge.
+We implemented it using a priority heap which holds pairs composed
+of the head of an enumeration and its tail. When a new element is required in the
+merged enumeration, we pop the top element of the heap, deconstruct
 the tail and insert it back in the heap.
 
-\begin{lstlisting}
-let merge l =
-  let cmp (v1,_) (v2,_) = K.compare v1 v2 in
-  let merge (x1, s1) (_, s2) = (x1, s1@s2) in
-  let push h s =
-    match s() with Nil -> h | Cons (x, s') -> Heap.insert h (x, [s'])
-  in
-  let h0 = List.fold_left push (Heap.empty ~cmp ~merge) l in
-  let rec next heap () =
-    if Heap.is_empty heap then Nil else begin
-      let (x, seq), heaps = Heap.pop heap in
-      let new_heap = List.fold_left push heaps seq in
-      Cons (x, next new_heap)
-    end
-  in
-  next h0
-\end{lstlisting}
+% \begin{lstlisting}
+% let merge l =
+%   let cmp (v1,_) (v2,_) = K.compare v1 v2 in
+%   let merge (x1, s1) (_, s2) = (x1, s1@s2) in
+%   let push h s =
+%     match s() with Nil -> h | Cons (x, s') -> Heap.insert h (x, [s'])
+%   in
+%   let h0 = List.fold_left push (Heap.empty ~cmp ~merge) l in
+%   let rec next heap () =
+%     if Heap.is_empty heap then Nil else begin
+%       let (x, seq), heaps = Heap.pop heap in
+%       let new_heap = List.fold_left push heaps seq in
+%       Cons (x, next new_heap)
+%     end
+%   in
+%   next h0
+% \end{lstlisting}
 
 \subsubsection{Transience and Memoization}
 
@@ -298,27 +293,27 @@ will compute it multiple times. To avoid this recomputation, we can implement me
 over thunk lists by pushing the elements in a growing vector as they are
 computed. Before evaluating a new thunk, we first check if it is already available
 in the vector. Otherwise, evaluate it, push it into the vector and return it.
-\begin{lstlisting}
-let memoize f =
-  let r = CCVector.create () in
-  let rec f' i seq () =
-    if i < CCVector.length r
-    then CCVector.get r i
-    else 
-      let l = match seq() with
-        | Nil -> Nil
-        | Cons (x, tail) -> Cons (x, f' (i+1) tail)
-      in
-      CCVector.push r l;
-      l
-  in
-  f' 0 f
-\end{lstlisting}
-
-Such a memoization function incurs a linear cost on streams. To test
+% \begin{lstlisting}
+% let memoize f =
+%   let r = CCVector.create () in
+%   let rec f' i seq () =
+%     if i < CCVector.length r
+%     then CCVector.get r i
+%     else 
+%       let l = match seq() with
+%         | Nil -> Nil
+%         | Cons (x, tail) -> Cons (x, f' (i+1) tail)
+%       in
+%       CCVector.push r l;
+%       l
+%   in
+%   f' 0 f
+% \end{lstlisting}
+%
+Such a memoization function incurs a linear cost on enumerations. To test
 if this operation is worthwhile we implemented two modules:
 \code{ThunkList} where memoization is the identity and \code{ThunkListMemo}
-with the implementation above.
+with the implementation described above.
 
 \subsubsection{Lazy Lists}
 
@@ -346,14 +341,15 @@ the n-way merge and the product, which can be implemented using folds and unions
 \subsubsection{Tries}
 
 Tries \cite{Fredkin1960} are prefix trees where each branch is labeled
-with a character and each node may contain a value. A trie 
-represents a mapping from a set of words and a word belongs to its domain if there is a
+with a character and each node may contain a value. Tries are commonly used
+as maps from words to values where a word belongs to its domain if there is a
 path reaching a value labeled with the characters in the word.
 Tries seem well adapted to our problem:
-\begin{itemize}
+\begin{itemize}[leftmargin=*]
 \item All words in a segment have the same length. As no prefixes need
-  to be represented, we can elide the values at inner nodes and tries
-  where values are only at the leaves.
+  to be represented, we can elide the values at inner nodes and only consider
+  tries
+  where values are at the leaves.
 \item The \code{append} operation on tries can be implemented by
   grafting the second trie to all the leaves of the first one.
 \end{itemize}
@@ -363,31 +359,29 @@ by \citet{Okasaki98fastmergeable}.
 For simplicity, we do not use path compression, which means
 that branches are always labeled with one character.
 A trie is then either \code{Empty}, a \code{Leaf} containing a value, or a \code{Node} containing a map from characters
-to its child tries. As we are only interested in the paths, we use tries with unit values. 
+to its child tries. As we are only interested in the paths, we consider tries
+without values. 
 
 \begin{lstlisting}
-type 'a trie =
+type trie =
   | Empty
-  | Leaf of 'a
-  | Node of 'a trie CharMap.t
-
-type t = unit trie
+  | Leaf
+  | Node of trie CharMap.t
 \end{lstlisting}
 
-The implementation of most operations follows the literature
-closely. The only novel operation is \code{append} to compute the product of two sets. It can be
-implemented in a single traversal.
+The implementation of most operations follows the literature.
+The only novel operation is \code{append} to compute the product of two sets.
+Since we do not store values at the leaves,
+it can be implemented in a single traversal which will graft the appended trie
+\code{t0} at each leaf of \code{t}, without copying it.
 
 \begin{lstlisting}
 let rec append t t0 = match t with
   | Empty -> Empty
-  | Leaf () -> t0
-  | Node map -> M.map (fun t' -> append t' t0) map
+  | Leaf -> t0
+  | Node map -> 
+    CharMap.map (fun t' -> append t' t0) map
 \end{lstlisting}
-
-The implementation of \code{append} relies on the fact that we do not store
-values at the leaves. Hence, the appended trie \code{t0} need not by
-copied, which is more efficient both in terms of time and space as it leads to a high degree of sharing between the tries.
 
 %%% Local Variables:
 %%% mode: latex
