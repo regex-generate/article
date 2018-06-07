@@ -1,0 +1,62 @@
+\section{Testing}
+\label{sec:test}
+
+We implemented our algorithms as libraries to create
+test harnesses for regular expression implementations.
+We used this library to implement a test harness for the \ocaml \code{Re} library
+\footnote{\url{https://github.com/ocaml/ocaml-re}},
+which is one of the most used \ocaml regular expression implementation.
+%
+We also used created a set of test cases for students projects in \haskell
+which helped them write better implementations.
+
+Concretely, the library provides a test-harness which generate
+regular expressions along with both positive and negative samples. The
+implementation under test can then compile the regular expression and apply it
+efficiently on the samples.
+The library exposes the sample generation as a generator in the style of
+property testing such as QuickCheck~\cite{DBLP:conf/icfp/ClaessenH00}.
+This allows to use all the tooling already available in such libraries, for
+example to generate arbitrary regular expressions.
+%
+The simplified API of the \ocaml version is shown below.
+The main function \code{arbitrary n alphabet} returns a generator
+which provides on average \code{n} samples using the given alphabet.
+
+\begin{lstlisting}
+type test = {
+  re : Regex.t ;
+  pos : Word.t list ;
+  neg : Word.t list ;
+}
+val arbitrary:
+  int -> Word.char list -> test QCheck.arbitrary
+\end{lstlisting}
+
+Regular expressions are represented as an algebraic datatypes which
+are easy to generate using QuickCheck-like libraries.
+The only constraints we place on the generated regular expressions
+is to restrict the star-height to less than 3. While our technique can be used
+for regular expressions with several nested repetitions, it can cause
+occasional slowdown and large memory consumption which are inconvenient
+in the context of automated testings.
+
+Our testing library only returns a finite number of samples. However, the
+language can (and often will) be infinite. We want to generate test-cases that will,
+on average, exercise the most the implementation to test. For this purpose, we
+use a technique similar to the fast approximation
+for reservoir sampling~\citep{DBLP:journals/toms/Vitter87}.
+When considering
+the sequence of words in the language, we skip $k$ elements where
+$k$ follows a power law of mean $n$. We then return the given
+sample, and stop the sampling with a probability $1/n$.
+%
+Using this technique, we obtain on average $k$ samples that are regularly
+spaced out in the front of the stream, but will occasionally skip ahead
+and return very large words. This has proven satisfying at finding good
+testing samples in practice.
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: "main"
+%%% End:
