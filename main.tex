@@ -1,7 +1,7 @@
 \newif\ifsubmit
 \submitfalse
 
-\documentclass[acmsmall,review,anonymous]{acmart}%
+\documentclass[sigplan,review,anonymous]{acmart}%
 \settopmatter{printfolios=true,printccs=false,printacmref=false}
 
 % Encoding and lang
@@ -37,6 +37,7 @@
 % \usepackage{paralist}
 \usepackage{enumitem}% Compact lists
 \usepackage{pifont}
+\usepackage{dblfloatfix} % allow figure* at the bottom
 
 % Specialized packages
 % \usepackage{syntax} % Grammar definitions
@@ -53,32 +54,32 @@
 \input{prelude}
 
 % Declare a new environment for floating examples. Used like figure.
-\usepackage{newfloat}
-\DeclareFloatingEnvironment[
-listname={List of Examples},
-name={Example},
-placement={!ht},
-]{ex}
-\crefname{ex}{Example}{Examples}
-\Crefname{ex}{Example}{Examples}
-\crefname{subex}{Example}{Examples}
-\Crefname{subex}{Example}{Examples}
+% \usepackage{newfloat}
+% \DeclareFloatingEnvironment[
+% listname={List of Examples},
+% name={Example},
+% placement={!ht},
+% ]{ex}
+% \crefname{ex}{Example}{Examples}
+% \Crefname{ex}{Example}{Examples}
+% \crefname{subex}{Example}{Examples}
+% \Crefname{subex}{Example}{Examples}
 
 % Bibliography
 \bibliographystyle{ACM-Reference-Format}
 \citestyle{acmauthoryear}
 
-%% Journal information
-%% Supplied to authors by publisher for camera-ready submission;
-%% use defaults for review submission.
-\acmJournal{PACMPL}
-\acmVolume{1}
-\acmNumber{ICFP} % CONF = POPL or ICFP or OOPSLA
-\acmArticle{1}
-\acmYear{2018}
-\acmMonth{1}
-\acmDOI{} % \acmDOI{10.1145/nnnnnnn.nnnnnnn}
-\startPage{1}
+% %% Journal information
+% %% Supplied to authors by publisher for camera-ready submission;
+% %% use defaults for review submission.
+% \acmJournal{PACMPL}
+% \acmVolume{1}
+% \acmNumber{ICFP} % CONF = POPL or ICFP or OOPSLA
+% \acmArticle{1}
+% \acmYear{2018}
+% \acmMonth{1}
+% \acmDOI{} % \acmDOI{10.1145/nnnnnnn.nnnnnnn}
+% \startPage{1}
 
 
 \begin{document}
@@ -117,6 +118,7 @@ placement={!ht},
 \input{improvements}
 \input{ocaml}
 \input{bench}
+\input{testing}
 \input{related}
 \input{conclusions}
 

@@ -1,6 +1,9 @@
 \section{Benchmarks}
 \label{sec:bench}
 
+% Remove indentation on all itemize lists.
+\setlist[itemize]{leftmargin=*}
+
 This section compares the performance of our implementations in two dimensions.
 First, we compare the successive algorithmic refinements using the \haskell
 implementation presented in \cref{sec:motivation} and \cref{sec:improvements}.
@@ -68,7 +71,7 @@ In the evaluation, we consider five variants of the Haskell implementation.
   combined with convolution.
 \end{itemize}
 
-\begin{figure}[tp]
+\begin{figure}[!tp]
   \centering
   \includegraphics[width=\linewidth]{measure/haskell_all.png}
   \caption{Benchmark for the \haskell implementation with various algorithms}
@@ -120,14 +123,11 @@ remarks:
 
 \subsection{Comparing Data Structures in the \ocaml Implementation}
 \label{sec:bench:ocaml}
-\begin{figure}[tp]
+\begin{figure}[!tp]
   \centering
   \includegraphics[width=\linewidth]{measure/ocaml_all.png}
   \caption{Benchmark for the \ocaml implementation with various data-structures}
   \label{bench:ocaml:all}
-  \includegraphics[width=0.66\linewidth]{measure/ocaml_union.png}
-  \caption{Benchmarking \texttt{union} in the \ocaml data-structures}
-  \label{bench:ocaml:union}
 \end{figure}
 
 By now, we have established that the \textbf{refConv} algorithm
@@ -141,32 +141,43 @@ $\Rconcat{\Rcomplement{(\Rstar{a})}}{b}$.  The results are shown in
 \cref{bench:ocaml:all}.
 
 Unlike the previous benchmark for algorithms, there is no clear winner
-among the data structures. The \code{ThunkList} and \code{LazyList} modules seem to
-be superior to the alternatives, although the results are highly influenced by
-the regular expression considered.
+among the data structures.
+Lazy and Thunk lists, with or without memoizations, are the most ``well-rounded''
+implementations and perform decently on most languages.
+We can however make the following remarks.
 \begin{itemize}[leftmargin=*]
-\item The \code{Trie} module is very inefficient on $\Rstar a$ because
-  our implementation of tries does not use path compression.
-  In the case of $\Rstar a$, where each segment contains only one word, the
+\item The \code{Trie} module,
+  while very efficient otherwise thanks to its efficient concatenation,
+  performs badly on $\Rstar a$.
+  This is likely due to the lack of path compression:
+  in the case of $\Rstar a$, where each segment contains only one word, the
   trie degenerates to a list of characters.
-  We believe
-  an implementation of tries with path compressions would perform significantly better.
+  We believe an implementation of tries with path compressions would perform
+  significantly better.
 \item The other data structures exhibit a very pronounced slowdown on $\Rstar a$
   when reaching 150000 words.
   We believe this slowdown is due to garbage collection because
   the active heap contained 10G of data before
   a collection was triggered. Much less memory is consumed for the other regular
-  expression.
+  expressions.
 \item The strict data structures showcase a very marked ``skewed
   stair'' pattern, which is completely absent for \code{ThunkList} and
   \code{LazyList}. Thus, manual control of laziness works very well in
   \ocaml. These results also demonstrate that strict data structures
   should only be used when all elements up to a given length are
   needed. In such a case the stair pattern causes no problems.
-\item Memoization for thunk lists significantly degrades performance. It seems
-  that the linear cost of memoizing the thunk list and allocating the vectors
-  is higher than simply recomputing lists.
+\item Memoization for thunk lists does not significantly increase performances.
+  It seems that the linear cost of memoizing the thunk list and
+  allocating the vectors
+  is often higher than simply recomputing lists.
 \end{itemize}
+
+
+\begin{figure}[!tp]
+  \includegraphics[width=\linewidth]{measure/ocaml_union.png}
+  \caption{Benchmarking \texttt{union} in the \ocaml data-structures}
+  \label{bench:ocaml:union}
+\end{figure}
 
 While the regular expressions presented previously do exercise
 \code{concatenation} and \code{star}, they do not exercise set
@@ -182,10 +193,11 @@ these two regular expressions are presented in
 \cref{bench:ocaml:union}.  Lazy and thunk lists, with or without
 memoization, are very efficient on the union and intersection of
 languages but less so when concatenation is involved. Performance of
-strict sets and tries is surprisingly poor.
+strict sets is surprisingly poor.
+Tries are very efficient on concatenations.
 
 \subsection{The Influence of Regular Expressions on Performance}
-\begin{figure}[tp]
+\begin{figure*}[tp]
   \centering
   \begin{subfigure}[t]{0.5\linewidth}
     \centering
@@ -196,18 +208,18 @@ strict sets and tries is surprisingly poor.
   \begin{subfigure}[t]{0.5\linewidth}
     \centering
     \includegraphics[width=\linewidth]{measure/ocaml_langs.png}
-    \caption{\ocaml implementation with \code{ThunkList}}
+    \caption{\ocaml implementation with \code{LazyList}}
     \label{bench:ocaml:langs}
   \end{subfigure}
   \caption{Benchmark on different regular expressions}
   \label{bench:langs}
-\end{figure}
+\end{figure*}
 
 The benchmark results so far demonstrate that the performance of the language
 generator highly depends on the structure of both
 the generated language and the regular expression considered.
 To further explore this observation we compare a range of regular expressions
-with the \code{refConv} \haskell implementation and the \code{ThunkList}
+with the \code{refConv} \haskell implementation and the \code{LazyList}
 \ocaml implementation.
 Before presenting the results, a word of warning:
 We do not claim to offer a fair comparison between languages!
@@ -242,10 +254,9 @@ indices. Briefly put, long strings are harder to generate than short
 ones.
 
 Regarding symmetry, we find that the generation of $\Rstar{a}b$ and
-$b\Rstar{a}$ has the same performance in the \haskell implementation.
-The \ocaml version does not behave symmetrically, because it does not
-implement the improved convolution technique with detection of finite
-languages, as described in \cref{sec:convolution}.
+$b\Rstar{a}$ has the same performance in both implementations,
+thanks to the improved convolution technique
+with detection of finite languages described in \cref{sec:convolution}.
 
 
 

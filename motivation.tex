@@ -76,9 +76,11 @@ words for testing.
 \subsection{Brief Intermezzo on Formal Languages}
 \label{sec:research-question}
 
-\begin{figure}[tp]
+\begin{figure*}[!bt]
+  \centering
+  \begin{minipage}{1.0\linewidth}
   \begin{align*}
-    r, s & &\Lang{\_}=\quad &  &
+    r, s & \vspace{10cm}\ &\Lang{\_}=\quad &  &
                              \makebox[1em][l]{\code{data GRE sig}}\\
          & ::= \Rnull & \ltext{empty}
                         & \emptyset
@@ -105,9 +107,10 @@ words for testing.
                         & \Sigma^* \setminus \Lang r
                            && \code{| Not (GRE sig)}
   \end{align*}
+  \end{minipage}
   \caption{Generalized regular expressions}
   \label{fig:generalized-regular-expressions}
-\end{figure}
+\end{figure*}
 
 As customary, we write $\Sigma^*$ for the set of finite words over
 alphabet $\Sigma$, which is defined by $\bigcup_{i=0}^\infty \Sigma^i$
@@ -180,7 +183,8 @@ generate sigma r = gen r
     gen (And r s) = intersect (gen r) (gen s)
     gen (Not r) = complement sigma (gen r)
 \end{lstlisting}
-\begin{figure}[tp]
+
+\begin{figure}[btp]
 \begin{lstlisting}
 module Examples.Naive where
 import qualified Data.Text as T
@@ -189,7 +193,8 @@ union :: Lang -> Lang -> Lang
 union lx ly = lx ++ ly
 
 concatenate :: Lang -> Lang -> Lang
-concatenate lx ly = [T.append wx wy | wx <- lx, wy <- ly ]
+concatenate lx ly =
+  [T.append wx wy | wx <- lx, wy <- ly ]
 
 intersect :: Lang -> Lang -> Lang
 intersect lx ly = [wx | wx <- lx, wx `elem` ly ]
@@ -590,7 +595,7 @@ contain the empty word $\varepsilon$). In this case $L^* =
 effective algorithm for computing the coefficients of the power series. 
 \begin{align}
   \label{eq:2}
-  &\text{Star:}
+  &%\text{Star:}
   & (U^*)_0 &= 1
   & (U^*)_n &= (U \cdot U^*)_n = \bigcup_{i=1}^n U_i\cdot (U^*)_{n-i}
 \end{align}

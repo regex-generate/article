@@ -2,7 +2,7 @@
 
 # set terminal x11 size 1500,500 font 'Deja Vu Sans Mono,14' persist
 
-set terminal pngcairo transparent size 2100,900 rounded font 'Deja Vu Sans,18'
+set terminal pngcairo transparent size 1000,2100 rounded font 'Deja Vu Sans,19'
 set output 'haskell_all.png'
 
 # set terminal tikz standalone size 15,6 textscale 0.5
@@ -29,8 +29,7 @@ set yrange [0:]
 # Put the legend at the bottom left of the plot
 set key left top
 
-set multiplot layout 1,3 columnsfirst scale 1,1
-set tmargin 2
+set multiplot layout 3,1 columnsfirst scale 1,1 spacing 1,1
 
 set style line 1 lt 1 lc rgb "#1b9e77" lw 4 pt 7 ps 1.5 dt solid
 set style line 2 lt 1 lc rgb "#d95f02" lw 4 pt 11 ps 1.5 dt ". "

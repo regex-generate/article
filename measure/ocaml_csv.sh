@@ -8,8 +8,8 @@ set -f #Disable globing
 ReBase=('a*' '(ab*)*' '~(a*)b' '~(a*)&~(b*)' '(aa*b|bb*a)(a|b)*')
 ReMore=('a*' 'a*b' 'ba*' '(ab*)*' '~(a*)b' '((a|b)(a|b))*' '(1(01*0)*1|0)*'  '~(a*)&~(b*)' '(aa*b|bb*a)(a|b)*')
 
-BackendBase=("ThunkListMemo" "LazyList" "StrictSet" "Trie")
-BackendMore=("ThunkList")
+BackendBase=("ThunkListMemo" "ThunkList" "StrictSet" "Trie")
+BackendMore=("LazyList")
 
 function genH {
     file="$2_$1_ocaml.csv"
@@ -17,7 +17,7 @@ function genH {
     regenerate prof \
         -a "ab" -s20 \
         -i "$1" \
-        "$2" > "$file"
+        "$2" > "$file" || true
 }
 
 function go {
