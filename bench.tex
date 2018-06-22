@@ -4,28 +4,29 @@
 % Remove indentation on all itemize lists.
 \setlist[itemize]{leftmargin=*}
 
-This section compares the performance of our implementations in two dimensions.
-First, we compare the successive algorithmic refinements using the \haskell
-implementation presented in \cref{sec:motivation} and \cref{sec:improvements}.
-Second, we compare different choices of data structures to represent segments
-using the \ocaml implementation described in \cref{sec:ocaml}.
+We now compare the performances of our implementations in two dimensions.
+We compare the successive algorithmic refinements in the \haskell
+implementation presented in \cref{sec:gener-cross-sect,sec:improvements},
+We then compare different segments representations with
+the \ocaml implementation described in \cref{sec:ocaml}.
 
 All benchmarks were done on a ThinkPad T470 with an i5-7200U CPU and 12G of memory.
 The \haskell benchmarks use the Stackage LTS 10.8 release and the \texttt{-O2} option.
 The OCaml benchmarks use \ocaml 4.06.1 with the flambda optimizer and the
-\texttt{-O3} option. We annotate functors
-with the \code{[@inline]} annotation to ensure that functors are applied at
-compile time and their content benefits from available optimizations.
+\texttt{-O3} option.
+% We annotate functors
+% with the \code{[@inline]} annotation to ensure that functors are applied at
+% compile time and their content benefits from available optimizations.
 
 \subsection{Comparing Algorithms in the \haskell Implementation}
 
-\cref{sec:motivation} and \cref{sec:improvements} develop the
+\cref{sec:gener-cross-sect,sec:improvements} develop the
 algorithm for generating languages in a sequence of changes applied to
 a naive baseline algorithm. We now evaluate the impact of these
 changes on performance, which we plan to measure in terms of
 generation speed in words per second. It turns out that this speed
 depends heavily on the characteristics of the the regular expression
-considered. For that reason, we choose three representative regular expressions to highlight the
+considered. We thus choose three representative regular expressions to highlight the
 strengths and weaknesses of the different approaches.
 \begin{itemize}
 \item $\Rstar a$: This expression describes a very small language with $P (w\in L) = 0$.
@@ -48,50 +49,48 @@ strengths and weaknesses of the different approaches.
   language.
 \end{itemize}
 
-In the evaluation, we consider five variants of the Haskell implementation.
-\begin{itemize}
-\item The \textbf{naive} implementation corresponds to the code developed by
-  the end of Section~\ref{sec:motivation}. It transforms to and from
-  segments on the fly and it uses plain list indexing in the
-  implementation of concatenation and closure.
-\item The \textbf{seg} implementation uses the infinite list-based segmented
-  representation throughout (Section~\ref{sec:segm-repr}). Moreover,
-  it relies on using maps and sparse indexing
-  (Sections~\ref{sec:map-data-structure} and~\ref{sec:sparse-indexing})
-  for concatenation and closure.
-\item The \textbf{segConv} implementation uses finite and infinite
-  segment lists, but it applies the convolution approach
-  (Section~\ref{sec:convolution}) to implement concatenation and
-  closure.
-\item The \textbf{ref} implementation uses the specialized segmented
-  representation from Section~\ref{sec:more-finite-repr} combined with
-  maps and sparse indexing.
-\item The \textbf{refConv} implementation uses the specialized
-  segmented representation from Section~\ref{sec:more-finite-repr}
-  combined with convolution.
-\end{itemize}
-
-\begin{figure}[!tp]
+\begin{figure}[!t]
   \centering
   \includegraphics[width=\linewidth]{measure/haskell_all.png}
   \caption{Benchmark for the \haskell implementation with various algorithms}
   \label{bench:haskell:all}
 \end{figure}
-To evaluate the performance, we iterate through the stream of words
-produced by the generator and force their evaluation.\footnote{In
-  Haskell, forcing is done using \lstinline{Control.DeepSeq}.} Every
-20 words, we record the time elapsed since the start of the iteration. We
-stop the iteration after 5 seconds. The resulting graph plots the time (x-axis) against the number of words (y-axis) produced so far. The slope of the graph in indicates the generation speed of the plotted algorithm, high slope is correlated to high generation speed.  \cref{bench:haskell:all} contains the results for the Haskell implementations.
+
+In the evaluation, we consider five variants of the Haskell implementation.
+\begin{itemize}
+\item The \textbf{naive} implementation corresponds to the code developed by
+  the end of Section~\ref{sec:motivation}. It transforms to and from
+  segments on the fly and uses plain list indexing.
+\item The \textbf{seg} implementation uses the infinite list-based segmented
+  representation throughout (\cref{sec:segm-repr}). Moreover,
+  it relies on maps and sparse indexing for concatenation and closure
+  (\cref{sec:sparse-indexing}).
+\item The \textbf{segConv} implementation additionally
+  applies the convolution approach presented in \cref{sec:convolution}.
+\item The \textbf{ref} implementation uses symbolic segments
+  from \cref{sec:more-finite-repr} combined with
+  maps and sparse indexing.
+\item The \textbf{refConv} implementation combines
+   symbolic segments, sparse indexing, and the convolution approach.
+\end{itemize}
+
+Performances are evaluated by iterating through the stream of words
+produced by the generator, forcing their evaluation.\footnote{In
+  Haskell, forcing is done using \lstinline{Control.DeepSeq}.}
+and recording the elapsed timed every 20 words.
+We stop the iteration after 5 seconds.
+The resulting graph plots the time (x-axis) against the number of words (y-axis) produced so far. The slope of the graph in indicates the generation speed of the plotted algorithm, high slope is correlated to high generation speed.  \cref{bench:haskell:all} contains the results for the Haskell implementations.
 
 Most algorithms generate between 3000 and 150000 words in the first
 second, which seems more than sufficient for testing purposes.
-Regarding comparative performance, the \textbf{refConv} implementation
+The \textbf{refConv} implementation
 which uses symbolic segments and convolutions is consistently in the
-leading group. Sometimes one of the other implementations is slightly
-faster, but not consistently so. This observation validates that the
+leading group.
+% Sometimes one of the other implementations is slightly
+% faster, but not consistently so.
+This observation validates that the
 changes proposed in \cref{sec:improvements} actually lead to
-improvements and suggests that \textbf{refConv} is the overall winner
-of this comparison.
+improvements.
 
 Looking at each graph in more detail, we can make the following
 remarks:
@@ -123,18 +122,18 @@ remarks:
 
 \subsection{Comparing Data Structures in the \ocaml Implementation}
 \label{sec:bench:ocaml}
-\begin{figure}[!tp]
+\begin{figure}[!t]
   \centering
   \includegraphics[width=\linewidth]{measure/ocaml_all.png}
   \caption{Benchmark for the \ocaml implementation with various data-structures}
   \label{bench:ocaml:all}
 \end{figure}
 
-By now, we have established that the \textbf{refConv} algorithm
+We have now established that the \textbf{refConv} algorithm
 provides the best overall performance.  The \haskell implementation,
-however, essentially uses lazy lists to represent single language
-segments. To measure the influence of strictness and the choice of data structure on
-language generation, we consider the functorized \ocaml implementation, as it facilitates such experimentation.
+however, only uses lazy lists to represent segments.
+To measure the influence of strictness and data structures on
+performances, we consider the functorized \ocaml implementation, as it facilitates such experimentation.
 We follow the same methodology as the \haskell evaluation using the
 regular expressions $\Rstar a$, $\Rstar{(\Rconcat{a}{\Rstar{b}})}$ and
 $\Rconcat{\Rcomplement{(\Rstar{a})}}{b}$.  The results are shown in
@@ -146,10 +145,10 @@ Lazy and Thunk lists, with or without memoizations, are the most ``well-rounded'
 implementations and perform decently on most languages.
 We can however make the following remarks.
 \begin{itemize}[leftmargin=*]
-\item The \code{Trie} module,
-  while very efficient otherwise thanks to its efficient concatenation,
-  performs badly on $\Rstar a$.
-  This is likely due to the lack of path compression:
+\item The \code{Trie} module
+  is very fast thanks to its efficient concatenation.
+  It however performs badly on $\Rstar a$
+  due to the lack of path compression:
   in the case of $\Rstar a$, where each segment contains only one word, the
   trie degenerates to a list of characters.
   We believe an implementation of tries with path compressions would perform
@@ -158,11 +157,10 @@ We can however make the following remarks.
   when reaching 150000 words.
   We believe this slowdown is due to garbage collection because
   the active heap contained 10G of data before
-  a collection was triggered. Much less memory is consumed for the other regular
-  expressions.
-\item The strict data structures showcase a very marked ``skewed
+  a collection was triggered. Far less memory is consumed for other languages.
+\item Strict data structures showcase a marked ``skewed
   stair'' pattern, which is completely absent for \code{ThunkList} and
-  \code{LazyList}. Thus, manual control of laziness works very well in
+  \code{LazyList}. Thus, manual control of laziness works well in
   \ocaml. These results also demonstrate that strict data structures
   should only be used when all elements up to a given length are
   needed. In such a case the stair pattern causes no problems.
@@ -173,11 +171,6 @@ We can however make the following remarks.
 \end{itemize}
 
 
-\begin{figure}[!tp]
-  \includegraphics[width=\linewidth]{measure/ocaml_union.png}
-  \caption{Benchmarking \texttt{union} in the \ocaml data-structures}
-  \label{bench:ocaml:union}
-\end{figure}
 
 While the regular expressions presented previously do exercise
 \code{concatenation} and \code{star}, they do not exercise set
@@ -188,13 +181,18 @@ $\Rintersect{\Rcomplement{(\Rstar{a})}}{\Rcomplement{(\Rstar{b})}}$
 and $\Rconcat{(\Runion{a\Rstar{a}b}{b\Rstar{b}a})}{\Rstar{\Sigma}}$.
 The first expression applies {intersection} to two large languages,
 the second expression takes the union of smaller languages, but uses a
-concatenation.  The performance of the various data structures on
-these two regular expressions are presented in
-\cref{bench:ocaml:union}.  Lazy and thunk lists, with or without
-memoization, are very efficient on the union and intersection of
-languages but less so when concatenation is involved. Performance of
+concatenation.  The results are shown \cref{bench:ocaml:union}.
+Lazy and thunk lists, with or without
+memoization, perform well on unions and intersections but less so
+on concatenations. Performance of
 strict sets is surprisingly poor.
 Tries are very efficient on concatenations.
+
+\begin{figure}[!t]
+  \includegraphics[width=\linewidth]{measure/ocaml_union.png}
+  \caption{Benchmarking \texttt{union} in the \ocaml data-structures}
+  \label{bench:ocaml:union}
+\end{figure}
 
 \subsection{The Influence of Regular Expressions on Performance}
 \begin{figure*}[tp]
@@ -225,8 +223,8 @@ Before presenting the results, a word of warning:
 We do not claim to offer a fair comparison between languages!
 The two implementations are not exactly the same and we made no attempt
 to measure both language under exactly the same conditions.
-
-\cref{bench:langs} contains the resulting graphs.  These graphs use a
+%
+\cref{bench:langs} contains the results with a
 logarithmic scale for the word count as it enables better comparison
 between the regular expression specimens.
 
@@ -234,14 +232,15 @@ We add three new regular expressions to the range of expressions already conside
 \begin{itemize}
 \item $\Rstar{(\Sigma\Sigma)}$, the language of words of even
   length. This language is neither finite nor cofinite, but it can make
-  good use of the symbolic representation of segments.\footnote{This
-    language has $P (w \in L) = 0.5$ thus solving the exercise posed
-    earlier.}
+  good use of the symbolic representation of segments.
+  % \footnote{This
+  %   language has $P (w \in L) = 0.5$ thus solving the exercise posed
+  %   earlier.}
 \item $\Rstar{(\Runion{1 \Rstar{(0\Rstar{1}0)}1}{0})}$, the language
-  of multiples of 3 written in binary representation. Again, this is a language that is neither
+  of multiples of 3 in binary representation. Again, this is a language that is neither
   finite nor cofinite, but its segments are never full nor empty.
 \item $\Rstar{a}b$ and $b\Rstar{a}$, which together check whether
-  {concatenation} behaves symmetric with respect to performance.
+  the performance of {concatenation} is symmetric.
 \end{itemize}
 
 Languages are roughly ordered by size/density, i.e., $P (w\in L)$. We
@@ -252,7 +251,7 @@ Moreover, most operations, notably those involving the product of
 segments, are more expensive when considering segments of higher
 indices. Briefly put, long strings are harder to generate than short
 ones.
-
+%
 Regarding symmetry, we find that the generation of $\Rstar{a}b$ and
 $b\Rstar{a}$ has the same performance in both implementations,
 thanks to the improved convolution technique

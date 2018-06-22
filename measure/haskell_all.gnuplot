@@ -2,7 +2,7 @@
 
 # set terminal x11 size 1500,500 font 'Deja Vu Sans Mono,14' persist
 
-set terminal pngcairo transparent size 1000,2100 rounded font 'Deja Vu Sans,19'
+set terminal pngcairo transparent size 1000,1950 rounded font 'Deja Vu Sans,19'
 set output 'haskell_all.png'
 
 # set terminal tikz standalone size 15,6 textscale 0.5

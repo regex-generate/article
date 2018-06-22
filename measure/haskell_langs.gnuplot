@@ -2,13 +2,14 @@
 
 # set terminal x11 size 700,700 font 'Deja Vu Sans Mono,14' persist
 
-set terminal pngcairo transparent size 1000,900 rounded font 'Deja Vu Sans,18'
+set terminal pngcairo transparent size 1000,700 rounded font 'Deja Vu Sans,18'
 set output 'haskell_langs.png'
 
 # set terminal tikz standalone size 15,6 textscale 0.5
 # set output 'tex/re-gen.tex'
 
 # Make it pretty -- http://edg.uchicago.edu/tutorials/pretty_plots_with_gnuplot/
+set ytics ( 0.1, 0.5, 1, 5, 10, 50, 100, 500 )
 set xtics nomirror
 set ytics nomirror
 set mxtics 2
@@ -23,7 +24,7 @@ set grid back ls 81
 set ylabel "Count (×10^4)"
 set xlabel "Time (s)"
 set xrange [0:5]
-set yrange [0:1200]
+set yrange [0:500]
 set logscale y
 
 # Put the legend at the bottom left of the plot
