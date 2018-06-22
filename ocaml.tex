@@ -3,11 +3,11 @@
 
 \lstset{language=[Objective]Caml}
 
-In addition to the \haskell implementation, we implemented the language generator
-in \ocaml.
-The \ocaml version only implements the ``latest'' version of the
-algorithm with a segmented representation, fast backward lookup and convolutions
-for concatenation and star and symbolic representation of segments.
+In addition to the \haskell implementation, we implemented the complete
+language generation algorithm in \ocaml.
+% The \ocaml version only implements the ``latest'' version of the
+% algorithm with a segmented representation, fast backward lookup and convolutions
+% for concatenation and star, and symbolic representation of segments.
 % One of the goal of this implementation was to test
 % pure \ocaml regular expression libraries such as ocaml-re\footnote{\url{https://github.com/ocaml/ocaml-re}} and
 % mulet\footnote{\url{https://github.com/let-def/mulet}}. 
@@ -17,15 +17,15 @@ The key idea is that the internal order on words in a segment does not matter
 since each segment only contains words of the same length.
 All we need is a data structure that supports the power series
 operations.
-
-To facilitate such experimentation, we implemented the generator
+%
+To facilitate such experimentation, we implemented the
 algorithm as a functor whose signature is shown in
 \cref{code:sigs:segment,code:sigs:word,code:sigs:regen}.
 In \ocaml, functors are parameterized modules that take modules
 as argument and return modules. Our implementation
 takes two data structures as arguments, words and segments,
-which allows us to test numerous representations easily without changing
-the code. It also forced us to find the ``minimal'' set of operations
+which allows us to test different representations easily without changing
+the code. It also forced us to find the minimal set of operations
 needed to implement the algorithm.
 
 \begin{figure}[tp]
@@ -49,7 +49,7 @@ module type SEGMENT = sig
 
   val empty: t
   val is_empty: t -> bool
-  val return: elt -> t
+  val singleton: elt -> t
 
   (* Set operations *)
   val union: t -> t -> t
@@ -86,7 +86,7 @@ end
 \paragraph{Characters and Words}
 
 \autoref{code:sigs:word} contains the signature for words.
-Surprisingly few operations are needed, we only require
+Surprisingly few operations are needed:
 the empty word (for \code{One}),
 singleton words (for \code{Atom}), and to append two words.
 Neither an ordering nor a length operation is needed for words:
@@ -101,24 +101,22 @@ type of individual characters is unrestricted.
 \paragraph{Segments}
 
 \autoref{code:sigs:segment} contains the signature for segments.
-The first group of operations creates and tests for empty segments and
-singleton segments. 
-The main requirement is to support the operations on power series described in
-\autoref{sec:ordered-enumeration}.
-For the set operations, we need the functions
+% The first group of operations creates and tests for empty segments and
+% singleton segments. 
+The main requirement is to support the operations on power series as described in \autoref{sec:gener-cross-sect}.
+We also requires the set operations
 \code{union}, \code{inter} and \code{inter}.
 %
 The product described in \autoref{eq:1} is decomposed in two parts:
 \begin{itemize}[leftmargin=*]
 \item An \code{append} function which implements $U_i V_{n-i}$. It computes the
-  product of two segments by pairwise appending their elements.
+  product of two segments pairwise by appending their elements.
 \item A \code{merge} operation which computes the union of an arbitrary number
   of segments. Its purpose is to collect the segments obtained
   by invocations of \code{append}.
 \end{itemize}
 %
-As the goal is to experiment with different data structures, we want
-to use implementations that are transient by default. We thus require 
+In order to experiment with transient data-structures, we require 
 an explicit \code{memoize} function that avoids recomputing segments accessed
 multiple times. 
 %
@@ -127,7 +125,7 @@ export elements to and from a segment.
 
 \subsection{Core Algorithm}
 
-The core algorithm is very similar to the Haskell version. The power series
+The core algorithm follows the Haskell version. The power series
 is implemented using a thunk list in the style of \citet{DBLP:conf/cpp/Pottier17}
 with some special-purpose additions:
 
@@ -143,24 +141,25 @@ An enumeration is represented by a function which takes a unit argument and retu
 a node. A node, in turn, is either \code{Nothing} or a \code{Cons} of an
 element and the tail of the sequence. The empty enumeration, for instance, is
 represented as \code{fun () -> Nothing}.
-This representation has several advantages\footnote{See
-  \url{https://github.com/ocaml/ocaml/pull/1002} for a long discussion
-  on the topic.}: it is lazy, fast, lightweight, and almost as easy to
+This representation is lazy, fast, lightweight, and almost as easy to
 manipulate as regular lists.
+% \footnote{See
+%   \url{https://github.com/ocaml/ocaml/pull/1002} for a long discussion
+%   on the topic.}
 The additional constructor \code{Everything} allow to manipulate
 full languages symbolically, as in \cref{sec:more-finite-repr}.
 
-The rest of the implementation is similar to the \haskell one. For instance,
-here is the implementation of the union of languages:
+% The rest of the implementation is similar to the \haskell one.
+As an example, the implementation of the union of languages is shown below.
+The trailing unit argument \code{()} allows to drive the evaluation of the sequence lazily. With this definition, \code{union s1 s2}
+will not cause any evaluation until it is applied to \code{()}.
 \begin{lstlisting}
 let rec union s1 s2 () = match s1(), s2() with
-  | Nil, x | x, Nil -> x
+  | Nothing, x | x, Nothing -> x
+  | Everything, _ | _, Everything -> Everything
   | Cons (x1, next1), Cons (x2, next2) -> 
     Cons (Segment.union x1 x2, union next1 next2)
 \end{lstlisting}
-The trailing unit argument, \code{()}, is essential because it allows
-us to drive the evaluation of the sequence lazily. With this definition, \code{union s1 s2}
-will not cause  any evaluation until it is applied to \code{()}.
 
 % The concatenation of languages demonstrates how the main algorithm can
 % be expressed once the segment operations have been abstracted:.
@@ -201,23 +200,24 @@ will not cause  any evaluation until it is applied to \code{()}.
 % let concatenate = collect 0 IntMap.empty IntMap.empty
 % \end{lstlisting}
 
-The biggest difference compared to the \haskell version relates to the use
-of recursion to define \code{star}-related operations.
-For instance, the \haskell implementation defines \code{lsigmastar} as
-\code{[T.empty] : map extend lsigmastar}. Such a recursive definition
-can not be translated directly to \ocaml, since it is not compatible with
-strict-by-default evaluation and will be prevented by the compiler.
-Instead, we simply use an accumulator to keep track of the latest version
-of the language.
-A similar change was made for the definition of \code{star}.
-\begin{lstlisting}
-let sigma_star sigma =
-  let rec collect acc () =
-    Iter.Cons 
-      (acc, collect (Segment.append sigma acc))
-  in
-  collect (Segment.return W.empty)
-\end{lstlisting}
+
+% The main difference compared to the \haskell version relates to the use
+% of recursion to define \code{star}-related operations.
+% For instance, the \haskell implementation defines \code{lsigmastar} as
+% \code{[T.empty] : map extend lsigmastar}. Such a recursive definition
+% can not be translated directly to \ocaml, since it is not compatible with
+% strict-by-default evaluation and will be prevented by the compiler.
+% Instead, we simply use an accumulator to keep track of the latest version
+% of the language.
+% A similar change was made for the definition of \code{star}.
+% \begin{lstlisting}
+% let sigma_star sigma =
+%   let rec collect acc () =
+%     Iter.Cons 
+%       (acc, collect (Segment.append sigma acc))
+%   in
+%   collect (Segment.return W.empty)
+% \end{lstlisting}
 
 
 \subsection{Data Structures}
@@ -228,29 +228,12 @@ range of potential implementations before comparing their performance.
 
 \subsubsection{Ordered enumerations}
 
-The \haskell implementation in \autoref{sec:ordered-enumeration}
-represents segments as ordered enumerations.
-We again use a thunk-list representation,
-which available in \ocaml as the \code{Seq} module.
-To use an order, we need a comparison and an
+Ordered enumerations, represented by thunk-lists, make
+for a light-weight set representation.
+To use an order, we require a comparison and an
 \code{append} function on words.  The \code{OrderedMonoid} signature
 captures these requirements. \autoref{code:thunklist} shows the
 resulting functor \code{ThunkList}.
-
-\begin{figure}[hbt]
-  \centering
-\begin{lstlisting}
-module type OrderedMonoid = sig
-  type t
-  val compare : t -> t -> int
-  val append : t -> t -> t
-end
-module ThunkList (Elt : OrderedMonoid) :
-  SEGMENTS with type elt = Elt.t
-\end{lstlisting}
-  \caption{Signature for \texttt{ThunkList}}
-  \label{code:thunklist}
-\end{figure}
 
 % Most of the implementation is straightforward. For example, here is the
 % \code{append} function, where \code{>>=} is bind (or \code{concatMap})
@@ -261,8 +244,8 @@ module ThunkList (Elt : OrderedMonoid) :
 %   l1 >>= fun x -> l2 >|= fun y -> Elt.append x y
 % \end{lstlisting}
 
-The only operation that is not straightforward is the n-way merge.
-We implemented it using a priority heap which holds pairs composed
+The only non-trivial operation, the n-way merge, 
+was implemented using a priority heap which holds pairs composed
 of the head of an enumeration and its tail. When a new element is required in the
 merged enumeration, we pop the top element of the heap, deconstruct
 the tail and insert it back in the heap.
@@ -284,6 +267,21 @@ the tail and insert it back in the heap.
 %   in
 %   next h0
 % \end{lstlisting}
+
+\begin{figure}[hbt]
+  \centering
+\begin{lstlisting}
+module type OrderedMonoid = sig
+  type t
+  val compare : t -> t -> int
+  val append : t -> t -> t
+end
+module ThunkList (Elt : OrderedMonoid) :
+  SEGMENTS with type elt = Elt.t
+\end{lstlisting}
+  \caption{Signature for \texttt{ThunkList}}
+  \label{code:thunklist}
+\end{figure}
 
 \subsubsection{Transience and Memoization}
 
@@ -359,8 +357,9 @@ by \citet{Okasaki98fastmergeable}.
 For simplicity, we do not use path compression, which means
 that branches are always labeled with one character.
 A trie is then either \code{Empty}, a \code{Leaf} containing a value, or a \code{Node} containing a map from characters
-to its child tries. As we are only interested in the paths, we consider tries
-without values. 
+to its child tries.
+% As we are only interested in the paths, we consider tries
+% without values. 
 
 \begin{lstlisting}
 type trie =
@@ -370,10 +369,10 @@ type trie =
 \end{lstlisting}
 
 The implementation of most operations follows the literature.
-The only novel operation is \code{append} to compute the product of two sets.
+The only novel operation is \code{append} which computes the product of two sets.
 Since we do not store values at the leaves,
 it can be implemented in a single traversal which will graft the appended trie
-\code{t0} at each leaf of \code{t}, without copying it.
+\code{t0} at each leaf of \code{t}, without copies.
 
 \begin{lstlisting}
 let rec append t t0 = match t with
