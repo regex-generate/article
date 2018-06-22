@@ -4,13 +4,13 @@
 % Remove indentation on all itemize lists.
 \setlist[itemize]{leftmargin=*}
 
-We now compare the performances of our implementations in two dimensions.
-We compare the successive algorithmic refinements in the \haskell
+We now compare the performances of our implementations in two dimensions:
+first the successive algorithmic refinements in the \haskell
 implementation presented in \cref{sec:gener-cross-sect,sec:improvements},
-We then compare different segments representations with
-the \ocaml implementation described in \cref{sec:ocaml}.
+then the various segments representations in \ocaml
+as described in \cref{sec:ocaml}.
 
-All benchmarks were done on a ThinkPad T470 with an i5-7200U CPU and 12G of memory.
+Benchmarks were done on a ThinkPad T470 with an i5-7200U CPU and 12G of memory.
 The \haskell benchmarks use the Stackage LTS 10.8 release and the \texttt{-O2} option.
 The OCaml benchmarks use \ocaml 4.06.1 with the flambda optimizer and the
 \texttt{-O3} option.
@@ -122,11 +122,12 @@ remarks:
 
 \subsection{Comparing Data Structures in the \ocaml Implementation}
 \label{sec:bench:ocaml}
-\begin{figure}[!t]
+\begin{figure}[!p]
   \centering
   \includegraphics[width=\linewidth]{measure/ocaml_all.png}
   \caption{Benchmark for the \ocaml implementation with various data-structures}
   \label{bench:ocaml:all}
+  \label{bench:ocaml:union}
 \end{figure}
 
 We have now established that the \textbf{refConv} algorithm
@@ -188,27 +189,16 @@ on concatenations. Performance of
 strict sets is surprisingly poor.
 Tries are very efficient on concatenations.
 
-\begin{figure}[!t]
-  \includegraphics[width=\linewidth]{measure/ocaml_union.png}
-  \caption{Benchmarking \texttt{union} in the \ocaml data-structures}
-  \label{bench:ocaml:union}
-\end{figure}
+% \begin{figure}[!t]
+%   \includegraphics[width=\linewidth]{measure/ocaml_union.png}
+%   \caption{Benchmarking \texttt{union} in the \ocaml data-structures}
+%   \label{bench:ocaml:union}
+% \end{figure}
 
 \subsection{The Influence of Regular Expressions on Performance}
-\begin{figure*}[tp]
+\begin{figure*}[!tp]
   \centering
-  \begin{subfigure}[t]{0.5\linewidth}
-    \centering
-    \includegraphics[width=\linewidth]{measure/haskell_langs.png}
-    \caption{\haskell implementation with \code{segConv}}
-    \label{bench:haskell:langs}
-  \end{subfigure}~
-  \begin{subfigure}[t]{0.5\linewidth}
-    \centering
-    \includegraphics[width=\linewidth]{measure/ocaml_langs.png}
-    \caption{\ocaml implementation with \code{LazyList}}
-    \label{bench:ocaml:langs}
-  \end{subfigure}
+  \includegraphics[width=\linewidth]{measure/langs.png}
   \caption{Benchmark on different regular expressions}
   \label{bench:langs}
 \end{figure*}

@@ -13,9 +13,9 @@ set xtics nomirror
 set ytics nomirror
 set mxtics 2
 set mytics 2
-set style line 80 lc rgb "#808080"
+set style line 80 lc rgb "#4D4D4D"
 set border 3 back ls 80
-set style line 81 lt 0 lc rgb "#808080" lw 0.5
+set style line 81 lt 0 lc rgb "#4D4D4D" lw 0.9
 set grid xtics
 set grid ytics
 set grid back ls 81
