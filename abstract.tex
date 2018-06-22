@@ -1,20 +1,19 @@
 Regular expressions are part of every programmer's toolbox.  They are
 used for a wide variety of language-related tasks and there are many algorithms for
 manipulating them. In particular, matching algorithms that detect
-whether a word belong to the language described by a regular
-expression is both a well explored area, 
-yet one that still receives frequent contributions. However, there is
-no satisfactory solution for testing such matchers, which would
-require generating positive as well as negative examples for the language. 
+whether a word belongs to the language described by a regular
+expression are well explored, 
+yet new algorithms appear frequently. However, there is
+no satisfactory methodology for testing such matchers.
 
-We propose an algorithm to generate a language matched by a generalized
-regular expression with intersection and complement operators.
-The complement operator allows us to generate both positive and
-negative example words
-from a given regular expression.
-We implement our generator in Haskell and OCaml,
-and show that its performance is more than
-adequate for the purpose of testing.
+We propose such a methodology which is based on generating positive as
+well as negative examples of words in the language. To this end, we
+present a new algorithm to generate the language described by a
+generalized regular expression with intersection and complement
+operators.  The complement operator allows us to generate both
+positive and negative example words from a given regular expression.
+We implement our generator in Haskell and OCaml, and show that its
+performance is more than adequate for testing.
 
 %%% Local Variables:
 %%% mode: latex

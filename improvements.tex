@@ -1,24 +1,11 @@
 \section{Improvements}
 \label{sec:improvements}
 
-\subsection{Segmented Representation}
+\subsection{Refined Segmented Representation}
 \label{sec:segm-repr}
 
-Two operations on the LLO representation, \code{concatenate} and
-\code{star}, internally transform their inputs into segment
-sequences. Such a transformation forth and back seems wasteful, so we
-stipulate to perform the entire generation process in terms of segment
-sequences. The transformation to a language only happens as the final
-step. Thus, the operations in this subsection manipulate languages in
-terms of the following type:
-\begin{lstlisting}[numbers=none]
-type SegLang = [[T.Text]]
-\end{lstlisting}
-
-As a second refinement, we try to address the productivity concerns
-discussed in Section~\ref{sec:motivation-discussion}. The approach is
-to let finite segment sequences represent finite languages. Hence, the
-base cases for the interpretation of regular expression may be defined
+The refined segmented representation attempts to use finite segment sequences to represent finite languages as much as possible. Hence, the
+base cases for the interpretation of a regular expression may be defined
 as in Figure~\ref{fig:base-cases-segmented}.
 \begin{figure}[tp]
 \begin{lstlisting}
@@ -31,28 +18,15 @@ one = [[T.empty]]
 atom :: Char -> SegLang
 atom t = [[], [T.singleton t]]
 \end{lstlisting}
-  \caption{Implementation of base cases for segmented language representation}
+  \caption{Implementation of base cases for refined segmented language representation}
   \label{fig:base-cases-segmented}
 \end{figure}
 The implementation of \code{union}, \code{intersect}, and
 \code{difference} (and hence \code{complement}) is an easy exercise and thus omitted.
-We discuss the remaining issues with the preliminary code for concatenation in
-Figure~\ref{fig:preliminary-concatenation-segmented}. 
-\begin{figure}[tp]
-\begin{lstlisting}
-concatenate' :: SegLang -> SegLang -> SegLang
-concatenate' lx ly = collect 0
-  where
-    collect n =
-      (foldr ILO.union [] $ map (combine n) [0 .. n]) : collect (n+1)
-    combine n i =
-      [T.append x y | x <- lx !!! i, y <- ly !!! (n - i)]
-\end{lstlisting}
-  \caption{Preliminary implementation of concatenation for segmented
-    language representation}
-  \label{fig:preliminary-concatenation-segmented}
-\end{figure}
-It relies on a special indexing operation into a list of lists that returns an empty
+We discuss the remaining issues with the previous code for concatenation in
+Figure~\ref{fig:concatenate-with-segments}. 
+The list indexing operation \lstinline{!!} in that code relies on languages being infinite lists. 
+It must be replaced by a special indexing operation into a list of lists that returns an empty
 list if indexing occurs beyond the end of a segment list:
 \begin{lstlisting}
 (!!!) :: [[a]] -> Int -> [a]
@@ -60,12 +34,13 @@ list if indexing occurs beyond the end of a segment list:
 (xs:xss) !!! 0 = xs
 (xs:xss) !!! n = xss !!! (n - 1)
 \end{lstlisting}
-This change makes \code{concatenate'} amenable to work with finite
-segment lists, 
-but any concatenation of languages yields an infinite list of
-segments. To avoid that we need a termination criterion for
-\code{collect} to determine whether any future call can make a
-non-empty contribution.
+This change makes \code{concatenate} amenable to work with finite
+segment lists. 
+
+However, any concatenation of languages results in an infinite list of
+segments. To keep the concatenation of finite language finite, we need
+a termination criterion for \code{collect} to determine that all
+future calls will only lead to empty segments.
 
 To this end, we extend the code to keep track of the lowest index
 seen in \code{lx} and \code{ly} where the respective segment list is
@@ -88,68 +63,52 @@ the product is bounded by $|xy| = |x| + |y| \le m_x -1 + m_y -1$. In
 consequence, if $n \ge m_x + m_y - 1$, then no word of
 length $n$ can be constructed by concatenation of elements from
 \code{lx} and
-\code{ly}. Figure~\ref{fig:finite-concatenation-segmented} contains
-the corresponding extension of \code{concatenate}. It makes use of
-\code{liftA2} used at type
-\code{(Int -> Int -> Int) -> Maybe Int -> Maybe Int -> Maybe Int}
-to add two values of type \code{Maybe
-  Int} if they are present.\footnote{The function \lstinline{liftA2 ::
-    Applicative f => (a -> b -> c) -> f a -> f b -> f c} is taken from
-the standard module \lstinline{Control.Applicative}.}
-\begin{figure}[tp]
-\begin{lstlisting}
-concatenate lx ly =
-  collect lx ly Nothing Nothing 0
-  where
-    collect xss yss mmx mmy n =
-      let (xss', mmx') = updateMax xss mmx n
-          (yss', mmy') = updateMax yss mmy n
-          mbound = liftA2 (+) mmx mmy
-      in
-        case mbound of
-          Just m | n >= m - 1 ->
-                   []
-          _ ->
-            (foldr ILO.union [] $ map (combine n) [0 .. n]) :
-            collect xss' yss' mmx' mmy' (n+1)
-    combine n i =
-      [T.append x y | x <- lx !!! i, y <- ly !!! (n - i)]
-    updateMax _ mm@(Just _) n = ([], mm)
-    updateMax [] Nothing n = ([], Just n)
-    updateMax (_:xss) Nothing n = (xss, Nothing)
-\end{lstlisting}
-  \caption{Finiteness preserving implementation of concatenation}
-  \label{fig:finite-concatenation-segmented}
-\end{figure}
+\code{ly}.
+We omit the straightforward modification of the code.
+% Figure~\ref{fig:finite-concatenation-segmented} contains
+% the corresponding extension of \code{concatenate}. It makes use of
+% \code{liftA2} used at type
+% \code{(Int -> Int -> Int) -> Maybe Int -> Maybe Int -> Maybe Int}
+% to add two values of type \code{Maybe
+%   Int} if they are present.\footnote{The function \lstinline{liftA2 ::
+%     Applicative f => (a -> b -> c) -> f a -> f b -> f c} is taken from
+% the standard module \lstinline{Control.Applicative}.}
+% \begin{figure}[tp]
+% \begin{lstlisting}
+% concatenate lx ly =
+%   collect lx ly Nothing Nothing 0
+%   where
+%     collect xss yss mmx mmy n =
+%       let (xss', mmx') = updateMax xss mmx n
+%           (yss', mmy') = updateMax yss mmy n
+%           mbound = liftA2 (+) mmx mmy
+%       in
+%         case mbound of
+%           Just m | n >= m - 1 ->
+%                    []
+%           _ ->
+%             (foldr ILO.union [] $ map (combine n) [0 .. n]) :
+%             collect xss' yss' mmx' mmy' (n+1)
+%     combine n i =
+%       [T.append x y | x <- lx !!! i, y <- ly !!! (n - i)]
+%     updateMax _ mm@(Just _) n = ([], mm)
+%     updateMax [] Nothing n = ([], Just n)
+%     updateMax (_:xss) Nothing n = (xss, Nothing)
+% \end{lstlisting}
+%   \caption{Finiteness preserving implementation of concatenation}
+%   \label{fig:finite-concatenation-segmented}
+% \end{figure}
 
 The output of \code{star} is only finite in two cases as $U^* = \{\varepsilon\}$ iff
 $U\subseteq\{\varepsilon\}$. Otherwise $|U^*|$ is infinite.
 The finite cases are straightforward to detect and thus not further discussed.
 
-\subsection{Assessment}
-\label{sec:interm-assessm}
 
-The segmented representation has a number of features that makes it
-well suited in practice. We discuss these features in turn and
-consider further minor improvements in the subsections to follow.
 
-\subsubsection{Productivity}
-Each generalized regular expression is interpreted by a productive
-(finite or infinite) stream of segments. Each segment is guaranteed to
-be a total, finite list of words. There is no partiality in this representation.
-
-\subsubsection{Easy Bounding}
-To restrict the generated segmented output \code{segs} to words of length less than a given
-bound \code{n}, all we need to do is \code{concat (take n segs)}. The result is
-a finite list of words. In contract, such filtering is not effective
-for the LLO representation where
-\lstinline{takeWhile (\w -> T.length w <  n) llo} may yield a partial list.
-
-\subsubsection{Finite Languages}
 Segmentation yields a finite representation for all finite languages
 defined without using the \code{complement} operation. While
 $\Lang{\Rcomplement{(\Rcomplement{\Rnull})}} = \emptyset$ is a finite 
-language, the output of \code{complement (complement zero)} is an
+language, the output of \code{complement (complement zero)} is still an
 infinite list of empty segments.
 
 In Section~\ref{sec:more-finite-repr}, we discuss ways to get finite
@@ -160,13 +119,13 @@ finite stream of segments.
 \subsection{Faster Concatenation}
 \label{sec:faster-concatenation}
 
-Looking back at the code in
-Figure~\ref{fig:preliminary-concatenation-segmented}, we see that the
+Looking back again at the code in
+Figure~\ref{fig:concatenate-with-segments}, we see that the
 invocation of \code{collect n} leads to $n$ invocations of the list
 indexing operations \code{lx !!! i} and \code{ly !!! (n - i)}, which
 results in an  overall complexity of $O (n^2)$ for generating the
 segment $n$.\footnote{We assume that
-GHC is sufficiently clever to pull \code{ly !!! (n - i)} out of the loop.}
+the compiler is sufficiently clever to pull \code{ly !!! (n - i)} out of the loop.}
 
 There are several different ways to reduce this complexity.
 
@@ -180,8 +139,9 @@ concatenate'' lx ly = collect ly []
   where
     collect (ysegn:ysegs) rly =
       let rly' = ysegn : rly in
-      (foldr ILO.union [] $ zipWith (liftA2 T.append) lx rly') :
-      collect ysegs rly'
+      (foldr McIlroy.union []
+        $ zipWith (liftA2 T.append) lx rly')
+      : collect ysegs rly'
 \end{lstlisting}
   \caption{Concatenation with convolution}
   \label{fig:concatenation-with-convolution}
@@ -195,7 +155,7 @@ convolution can be implemented in linear time using
 
 For simplicity, the code in the figure only handles infinite lists of
 segments. But when extended with handling the case for finite lists,
-it gives rise to a very nice optimization. If \code{lx} is finite,
+it gives rise to an optimization. If \code{lx} is finite,
 then the \code{zipWith} automatically stops processing unnecessary indices in
 \code{ly}. Conversely, if \code{ly} starts with some empty segments
 because all its words are longer than some lower bound, then these
@@ -215,15 +175,15 @@ complexity.
 
 We implemented the finiteness-aware algorithm including role flipping,
 but we do not include the code in the paper, as it is a
-straightforward, but tedious variation of the code in
+tedious variation of the code in
 Figure~\ref{fig:concatenation-with-convolution}. 
 
-\subsubsection{Map Data Structure}\label{sec:map-data-structure}
-Alternatively, we could store the segments of \code{lx} and \code{ly}
-up to length \code{n} in a map data structure of type
-\code{Data.Map.Map Int [T.Text]}, which maps the number $i$ to the
-segment that contains the words of length $i$. This change would bring
-down the quadratic complexity to $O (n\log n)$. 
+% \subsubsection{Map Data Structure}\label{sec:map-data-structure}
+% As segments represent finite sets, we could store the segments of \code{lx} and \code{ly}
+% up to length \code{n} in a map data structure of type
+% \code{Data.Map.Map Int [T.Text]}, which maps the number $i$ to the
+% segment that contains the words of length $i$. This change would bring
+% down the quadratic complexity to $O (n\log n)$. 
 
 \subsubsection{Sparse Indexing}\label{sec:sparse-indexing}
 Along with the recursive calls of \code{collect}, we could accumulate
@@ -233,28 +193,25 @@ corresponding segments are non-empty. With this information, the
 indexes where both \code{lx !!! i} and \code{ly !!! (n - i)} are
 non-empty.
 
-The combination of using maps and sparse indexing gives rise to a
-more symmetric behavior.
+% The combination of using maps and sparse indexing gives rise to a
+% more symmetric behavior.
 
 \subsection{Faster Closure}
 \label{sec:faster-closure}
 
 The optimizations described for concatenation also apply to the
 computation of the Kleene closure. The convolution approach does not
-require any flipping because it is clear that only the input language
+require any flipping in this case because it is clear that only the input language
 can be finite, as the cases where the output language is finite are
-treated specially, anyway.  
-
-Using a map data structure and sparse indexing can be done in exactly
-the same way as for concatenation.
+treated separately.  
 
 \subsection{More Finite Representations}
 \label{sec:more-finite-repr}
 
 We already remarked that we can keep segmented representations finite
-for finite languages constructed without using \code{complement}. An
-obvious idea to extend the realm of finite representations is to use a
-custom data type \code{Segments} for segment lists.
+for finite languages constructed without using \code{complement}.  To
+extend the realm of finite representations we propose to use a custom
+data type \code{Segments} for segment lists.
 \begin{lstlisting}
 data Segments
   = Empty
@@ -282,10 +239,9 @@ data Lang
 The constructor \code{Null} stands for the empty set, \code{Data ws}
 stands for a non-empty set of words represented by an increasingly
 ordered list \code{ws}, and \code{Univ ws}, when encountered at level
-$n$, indicates that its argument \code{ws} represents the full set of
-word $\Sigma^n$.
+$n$, indicates that its argument \code{ws} represents the full set $\Sigma^n$.
 
-It is an easy, but tedious exercise to implement the operations
+It is an easy exercise to implement the operations
 \code{union}, \code{intersect}, and \code{difference} on \code{Lang}
 and \code{Segments} in a way that preserves the above invariants as
 much as possible.
@@ -302,8 +258,8 @@ But a slight variation like
 $\Lang{(\Rcomplement{a})(\Rcomplement{b})} = \{a,b\}^*$ would not be
 represented finitely.
 
-It turns out that we can extend the range of languages for which
-finite representations are generated by dualizing the idea for
+We can extend the range of languages with
+finite representations by dualizing the idea for
 detecting finiteness in Section~\ref{sec:segm-repr}. The following
 lemma captures this idea.
 \begin{lemma}
@@ -315,15 +271,13 @@ suppose that there are numbers $f_x, f_y\ge0$ such that
 \end{align*}
 Then $\forall w \in \Sigma^*$, $|w|\ge f_x+f_y \Rightarrow w \in X\cdot Y$.
 \end{lemma}
- An algorithm analogous 
-to the finiteness-preserving one in
-Figure~\ref{fig:finite-concatenation-segmented} can determine $f_x$
+The generation algorithm can determine $f_x$
 and $f_y$ by detecting when a segment list is \code{Full}. Once $f_x$
 and $f_y$ are both determined and the generated word length $n$ is
-greater than or equal to $f_x+f_y$, then we can finish the segments by
+greater than or equal to $f_x+f_y$, then we can finish producing the segments by
 outputting the appropriate \code{Full}.
 
-This algorithm generates finite segmented representations
+This approach yields finite segment representations
 for many finite and co-finite languages. For example, the computed
 representations for $\Rcomplement a$, $\Rcomplement b$, and
 ${(\Rcomplement{a})(\Rcomplement{b})}$ are as follows. 

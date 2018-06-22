@@ -1,0 +1,211 @@
+
+
+
+ contains an implementation
+of a finite version of the generator module according to the preceding
+discussion. The implementation of \texttt{star} follows the definition
+of $U^*$ literally. It first recursively creates a list \texttt{lxs}
+of the iterates $U_\bullet^i$ where
+$U_\bullet = U \setminus \{\varepsilon\}$, concatenates all of
+them\footnote{It is easy to see that $U^* = U_\bullet^*$.}, removes
+the duplicates, and imposes the limit. Removing duplicates introduces
+quadratic worst-case time complexity in the size of the output.
+
+The implementation of \texttt{complement} generates the language
+$\Sigma^*$ analogously to the construction of $U^*$ in
+\texttt{star}, uses the list difference operator
+\texttt{L.\textbackslash\textbackslash} to remove elements of
+\texttt{lx}, and finally imposes the limit. Its worst-case run time is
+$O(m\cdot n)$ where $m$ is the limit and $n = \code{length lx}$.
+
+In summary, the naive approach in
+Figure~\ref{fig:regular-operators-0} can generate infinite languages,
+but has many drawbacks that lead to duplication and incompleteness
+(words in the language are not enumerated). Moreover, the complement
+is not computable for this approach.
+
+The finite approach in Figure~\ref{fig:finite-regular-operators}
+imposes an arbitrary limit on the number of generated words. This
+limit can lead to omitting words in nonempty languages where $P (w\in
+R) = 0$. Moreover, there are many places (in \texttt{union},
+\texttt{concatenate}, and \texttt{star}) with quadratic worst-case
+time complexity. 
+
+At this point, the question is: Can we do better? Can we come up with
+a generator that supports finite as well as infinite languages
+efficiently without incurring extraneous quadratic behavior?
+
+
+\subsection{Ordered Enumeration}
+\label{sec:ordered-enumeration}
+\begin{figure}[tp]
+\begin{lstlisting}
+union :: (Ord t) => [t] -> [t] -> [t]
+union xs@(x:xs') ys@(y:ys') =
+  case compare x y of
+    EQ -> x : union xs' ys'
+    LT -> x : union xs' ys
+    GT -> y : union xs ys'
+union xs ys = xs ++ ys
+\end{lstlisting}
+
+\begin{lstlisting}
+intersect :: (Ord t) => [t] -> [t] -> [t]
+intersect xs@(x:xs') ys@(y:ys') =
+  case compare x y of
+    EQ -> x : intersect xs' ys'
+    LT -> intersect xs' ys
+    GT -> intersect xs ys'
+intersect xs ys = []
+\end{lstlisting}
+
+\begin{lstlisting}
+difference :: (Ord t) => [t] -> [t] -> [t]
+difference xs@(x:xs') ys@(y:ys') =
+  case compare x y of
+    EQ -> difference xs' ys'
+    LT -> x : difference xs' ys
+    GT -> difference xs ys'
+difference xs ys = xs
+\end{lstlisting}
+  \caption{Union, intersection, and difference by merging lists}
+  \label{fig:merging-lists}
+\end{figure}
+
+First, we concentrate on improving on the quadratic behavior. The key
+to improve the complexity of union, intersection, and complement lies
+in representing a language by a strictly increasingly sorted list.
+In this case, the three operations can be implemented by variations of
+the merge operation on lists as shown in
+Figure~\ref{fig:merging-lists}.
+
+The merge-based operations run in linear time on finite
+lists. However, the operations in Figure~\ref{fig:merging-lists} are
+incomplete on infinite lists. As 
+an example of the incompleteness, consider the languages $U = a\cdot
+(a+b)^*$ and the singleton language $V = \{b\}$ where $\Sigma = \{a, b\}$
+with $a<b$, represented as strictly increasing lists, the infinite
+list \code{lu} and the singleton list \code{lv}. The problem is that
+the list \code{union lu lv} does not contain the word $b$; more
+precisely, \code{T.singleton 'b' `elem` union lu lv} does not
+terminate whereas \code{u `elem` union lu lv} yields \code{True} for
+all \code{u} in \code{lu}. The source 
+of the problem is that Haskell's standard ordering of lists and
+\code{Text} is the \emph{lexicographic ordering}, which we call
+$\le$. It relies on an underlying total ordering on $\Sigma$ and is
+defined inductively:
+\begin{mathpar}
+  \inferrule{}{\varepsilon  \le v}
+  
+  \inferrule{u \le v}{au \le av}
+
+  \inferrule{a < b}{au \le bv}
+\end{mathpar}
+
+This total ordering
+is often used for $\Sigma^*$, but it has the property that
+there are words $v<w$ such that there are infinitely many words $u$
+with $v<u$ and $u<w$. For example, $v=a$, $w=b$, and $u\in U \setminus
+\{a\}$, which explains the nonterminating behavior just exhibited.
+
+Fortunately, there is another total ordering on words with better
+properties. The
+\emph{length-lexicographic ordering} 
+For the sake of simplicity, we assume from now on that \code{T.Text}
+is ordered by \code{llocompare} and call the representation of a
+language by a strictly increasing list in length-lexicographic order
+its \emph{LLO representation}. 
+
+With the LLO representation, the operations \code{union},
+\code{intersect}, and \code{difference} run in linear time. If the input languages
+are finite of size $m$ and $n$, respectively, then $O(m+n)$
+comparisons, pattern matches, and cons operations are needed.
+Moreover, the operations are complete in the sense that any element in
+the output is sure to be detected by a terminating computation. 
+It is easy to implement a version of \code{elem} that exploits the LLO ordering,
+such that the element test is decidable for any infinite
+language.
+
+
+
+\subsubsection{Concatenation}
+To implement concatenation, we are in the following situation. Given
+two languages $U, V \subseteq \Sigma^*$ in LLO representation,
+produce the LLO representation of $U \cdot V =  \{ u\cdot v \mid u\in
+U, v\in V\}$. If we compute the product naively as in
+Figure~\ref{fig:regular-operators-0}, then the output is not in LLO
+form:\footnote{The example relies on the operator
+  \lstinline{Data.Monoid.<>} to append strings in any representation.}  
+\begin{verbatim}
+λ> let lu = ["a", "ab"]
+λ> let lv = ["", "b", "bb"]
+λ> [ u<>v | u <- lu, v <- lv ]
+["a","ab","abb","ab","abb","abbb"]
+\end{verbatim}
+In fact, the output violates both constraints: it is not increasing
+and it has duplicates.
+
+Perhaps the following observation helps: for each $u\in U$, the LLO
+representation of the language $u\cdot V$ can be trivially produced
+because the list \lstinline{[ u<>v |  v <- lv ]} is strictly
+increasing. This observation motivates the following definition of
+language concatenation (using \code{union} from Figure~\ref{fig:merging-lists}).
+\begin{lstlisting}
+concatenate' :: Lang -> Lang -> Lang
+concatenate' lx ly =
+  foldr union [] $ [[ T.append x y | y <- ly] | x <- lx]
+\end{lstlisting}
+This definition works fine as long as \code{lx} is finite. If it is
+infinite, then the \code{foldr} creates an infinitely deep nest of
+invocations of \code{union}, which do not make progress because
+\code{union} is strict in both arguments.
+
+At this point, the theory of formal languages can help. The notion of
+a \emph{formal power series} has been invented to reason about and
+compute with entire languages \cite{DBLP:books/daglib/0067812,DBLP:books/sp/KuichS86}. In full
+generality, a formal power series is a mapping from $\Sigma^*$ into a
+semiring $S$ and we write $\FPS{S}$ for the set of these
+mappings. Formally, an element $r \in \FPS{S}$ is written as the
+formal sum
+\begin{align*}
+  r &= \sum_{w \in \Sigma^*} (r,w) \cdot w
+\end{align*}
+where $(r,w) \in S$ is the coefficient of $w$ in $r$.
+A popular candidate for this semiring is the boolean semiring $B$
+because $\FPS{B}$ is isomorphic to the set of languages over
+$\Sigma$. This isomorphism maps $L\subseteq\Sigma^*$ to its
+characteristic series $r_L$ where $(r_L, w) = (w \in L)$.
+
+The usual language operations have their counterparts on formal power
+series. We consider just three of them where the ``additions'' and ``multiplications'' on the
+right side of the definitions take place in the underlying semiring.
+\begin{align*}
+  &\text{Sum:}
+  & (r_1 + r_2, w) &= (r_1, w) + (r_2, w) \\
+  &\text{Hadamard product:}
+  &(r_1 \odot r_2, w) &= (r_1, w) (r_2, w) \\
+  &\text{Product:}
+  & (r_1 \cdot r_2, w) &= \sum_{u\cdot v=w} (r_1, u) (r_2,v) 
+\end{align*}
+
+Ok, so what is the connection between formal power series and the LLO
+representation? The LLO representation of a language $L$ can be viewed as a systematic
+enumeration of the indexes of the non-zero coefficients of the
+characteristic power series of $L$. Thus, the \code{union} operator
+corresponds to the sum and the \code{intersect} operator corresponds
+to the Hadamard product (in $B$ the $+$ and $\cdot$ operators are
+$\vee$ and $\wedge$). 
+
+We also get a hint for computing the product. To find out whether $w
+\in U \cdot V$ we need to find $u\in U$ and $v\in V$ such that $u\cdot
+v = w$. Abstracting from this observation, we obtain that building a
+word $w$ with $|w| = n$ requires two words $u\in U$ and $v\in V$ such that $|u| +
+|v| = |w| = n$. Hence, it would be useful to have a representation
+that exposes the lengths of words.
+
+To obtain such a representation, we represent a language as a power series
+\begin{gather*}
+  L = \sum_{n=0}^\infty L_nx^n
+\end{gather*}
+where, for all $n$, $L_n \subseteq \Sigma^n$, a decomposition which corresponds
+directly to the definition of $\Sigma^*$.
