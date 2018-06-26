@@ -395,9 +395,10 @@ concatenate lx ly = collect 0
          $ map (combine n) [0 .. n])
       : collect (n+1)
     combine n i =
-      [T.append x y 
-      | x <- lx !! i, y <- ly !! (n - i)]
+      liftA2 T.append (lx !! i) (ly !! (n - i))
 \end{lstlisting}
+      % [T.append x y 
+      % | x <- lx !! i, y <- ]
   \caption{Concatenation for segment representation}
   \label{fig:concatenate-with-segments}
 \end{figure}
@@ -441,9 +442,11 @@ star lx = lstar
          $ map (combine n) [1 .. n])
       : collect (n + 1)
     combine n i =
-      [T.append x y 
-      | x <- lx !! i, y <- lstar !! (n - i)]
+      liftA2 T.append (lx !! i) (lstar !! (n - i))
 \end{lstlisting}
+    % combine n i =
+    %   [T.append x y 
+    %   | x <- lx !! i, y <- lstar !! (n - i)]
   \caption{Kleene closure for segment representation}
   \label{fig:star-with-segments}
 \end{figure}
