@@ -4,25 +4,23 @@
 \subsubsection*{Regular Language Generation}
 
 \citet{DBLP:journals/actaC/Makinen97} describes a method to enumerate
-the words of a regular language $L$ in length-lexicographic
-ordering. It relies on the regular language being defined by a
-deterministic finite automaton. To generate words up to length $n$,
-this method requires to precompute, for each $i\le n$, the
-lexicographically minimal and maximal word of length $i$ in $L$. This
-precomputation takes time $O(n)$.
+the words of a regular language $L$, given by a deterministic finite
+automaton, in length-lexicographic ordering. To generate words up to
+length $n$, this method precomputes in time $O(n)$, for each $i\le n$,
+the lexicographically minimal and maximal word of length $i$ in $L$.
+%
+Enumeration starts with the minimal word of
+length $n$ and repeatedly computes the lexicographically next word in $L$
+until it reaches the maximal word of length $n$. Each step requires time $O(n)$. 
 
-The actual enumeration starts with the precomputed minimal word of
-length $n$ and repeatedly computes the lexicographically next word
-until it reaches the maximal word of length $n$. Each such step requires time $O(n)$. 
+% The same approach can be used for enumerating the language of certain
+% (prefix-free, length complete) context-free grammars, too.
 
-The same approach can be used for enumerating the language of certain
-(prefix-free, length complete) context-free grammars, too.
-
-Compared to our approach, M{\"{a}}kinen requires a deterministic
+In comparison, M{\"{a}}kinen requires a deterministic
 finite automaton, which can be obtained from a regular expression in
 worst-case exponential time. Complementation is not mentioned, but it
-can obviously be handled. M{\"{a}}kinen would give rise to a
-productive definition by segments because the computation of minimal
+could be handled. M{\"{a}}kinen would give rise to a
+productive definition by cross sections because the computation of minimal
 and maximal words could be done incrementally, but which is not mentioned
 in the paper.
 
@@ -31,44 +29,40 @@ in the paper.
 
 \citet{DBLP:journals/jfp/McIlroy04} implements the enumeration of all
 strings of a regular language in Haskell. He develops two approaches,
-one based on interpreting regular expressions, the other (unrelated to
-ours) using a shallow embedding of nondeterministic finite
-automata. The first approach is inspired by an earlier note by Misra
-\cite{misra11:_enumer_strin_regul_expres} and uses operators based on
-a length-lexicographically increasing list representation similar to
-our first proposal.
+one based on interpreting regular expressions inspired by
+\citet{misra11:_enumer_strin_regul_expres} and discussed in
+Section~\ref{sec:naive-approach}, the other (unrelated to ours) using
+a shallow embedding of nondeterministic finite automata.
 
-The implementation of union is identical to ours, but intersection and
-difference operations are not considered and hence complementation is
-not considered, either. The implementation of concatenation is the
-generic multiplication operation for sequences / power series
-\cite{DBLP:journals/jfp/McIlroy99} instantiated for the semiring
-of union and concatenation of languages. Unlike our implementation, the generic 
-implementation does not take advantage of the fact that many
-intermediate results can be generated in the correct ordering and hence
-requires many more union operations (one for each output string versus
-one for each length between $0$ and $n$ where $n$ is the length of
-the output string).  Moreover, the generation method is reported to
-be very inefficient and thus not suitable for generating test inputs
-at a large scale.
+% The implementation of union is identical to ours, but intersection and
+% difference operations are not considered and hence complementation is
+% not considered, either. The implementation of concatenation is the
+% generic multiplication operation for sequences / power series
+% \cite{DBLP:journals/jfp/McIlroy99} instantiated for the semiring
+% of union and concatenation of languages. Unlike our implementation, the generic 
+% implementation does not take advantage of the fact that many
+% intermediate results can be generated in the correct ordering and hence
+% requires many more union operations (one for each output string versus
+% one for each length between $0$ and $n$ where $n$ is the length of
+% the output string).  Moreover, the generation method is reported to
+% be very inefficient and thus not suitable for generating test inputs
+% at a large scale.
 
-\citet{DBLP:journals/tcs/AckermanS09} improve on M{\"{a}}kinen's
-algorithm by working directly on a nondeterministic finite automaton
-and by proposing more efficient algorithms to compute minimal words of
-a given length and to proceed to the next word of same length in the
-language. An empirical study compares a number of variations of the
-enumeration algorithm.
-
-Their enumeration algorithm iteratively invokes a cross-section
-enumeration, where the $n^{\text{th}}$ cross-section of a language $L$ is
-$L \cap \Sigma^n$, that is, a segment in our terminology.
-
+\citet{DBLP:journals/tcs/AckermanS09} improve M{\"{a}}kinen's
+algorithm by working on a nondeterministic finite automaton
+and by proposing faster algorithms to compute minimal words of a given
+length and to proceed to the next word of same length. An empirical
+study compares a number of variations of the enumeration algorithm.
+%
+% Their enumeration algorithm iteratively invokes a cross-section
+% enumeration, where the $n^{\text{th}}$ cross-section of a language $L$ is
+% $L \cap \Sigma^n$, that is, a segment in our terminology.
+%
 \citet{DBLP:conf/cocoon/AckermanM09} present three further
-improvements on their enumeration algorithms that exhibit better
-asymptotic complexity. Their empirical study indicates that the
-improved algorithms perform better in practice.
+improvements on their enumeration algorithms with better asymptotic
+complexity. The improved algorithms perform better in practice, too.
 
-Compared to our work, Ackerman's approach and its subsequent improvement does not incur an
+Ackerman's approach and its subsequent improvement does not incur an
 exponential blowup when converting from a regular expression. As it is based on
 nondeterministic finite automata, complementation cannot readily be
 supported. Moreover, the approach is not compositional.
@@ -78,11 +72,11 @@ supported. Moreover, the approach is not compositional.
 % account for the size $s$ of the automaton, and obtain $O (s^2n^2)$ for
 % the computation of minimal words.
 
-As one example of a line of unrelated work with deceivingly similar
-titles, \citet{DBLP:conf/wia/LeeS04} discuss enumerating regular
-expressions and their languages. The goal of this work is aims to find
-bounds on the \textbf{number of languages} that can be represented
-with regular expressions and automata of a certain size.
+% As one example of a line of unrelated work with deceivingly similar
+% titles, \citet{DBLP:conf/wia/LeeS04} discuss enumerating regular
+% expressions and their languages. The goal of this work is aims to find
+% bounds on the \textbf{number of languages} that can be represented
+% with regular expressions and automata of a certain size.
 
 
 
@@ -116,7 +110,7 @@ test-data generation has been used successfully in a wide variety of
 contexts.  In property testing, input data for the function to test is
 described via a set of combinators while the actual generation is
 driven by a pseudo-random number generator. One difficulty of this
-approach is to find the correct distribution of inputs that will
+approach is to find a distribution of inputs that will
 generate challenging test cases. This problem already arises with
 recursive data types, but it is even more pronounced when generating
 test inputs for regular expressions because, as explained in
@@ -128,13 +122,14 @@ expressions and then apply our language generator to generate targeted
 positive and negative input for these randomly generated regular
 expressions.
 
-\citet{DBLP:journals/jfp/NewFFM17} are concerned with the enumeration
-of elements of various data structures. Their approach is
-complementary to test-data generators. They exploit bijections between
-natural numbers and the data domain and develop a quality criterion
-for data generators based on a notion of fairness. It would be
-interesting to investigate the connection between their enumeration
-strategies and a direct representation of formal power series.
+\citet{DBLP:journals/jfp/NewFFM17} enumerate elements of various data
+structures. Their approach is complementary to test-data
+generators. It exploits bijections between natural numbers and the
+data domain and develops a quality criterion for data generators based
+on fairness.
+% It would be interesting to investigate the
+% connection between their enumeration strategies and a direct
+% representation of formal power series.
 
 Crowbar~\cite{crowbar} is a library that combines property testing
 with fuzzing.  In QuickCheck, the generation is driven by a random
