@@ -11,10 +11,10 @@ Consequently, there are many algorithms and libraries that implement
 parsing for regular expressions. Some of them are based on Thompson's
 translation from regular expressions to nondeterministic finite
 automata and then apply the powerset construction to obtain a
-deterministic automaton. Others are based on Brzozowski's derivatives
+deterministic automaton. Others are based on derivatives
 \cite{Brzozowski1964} and
 map a regular expression directly to a deterministic
-automaton. Antimirov's partial derivatives \cite{Antimirov96Partial}
+automaton. Partial derivatives \cite{Antimirov96Partial}
 provide another transformation into a nondeterministic automaton. An
 implementation based on Glushkov automata has been proposed
 \cite{DBLP:conf/icfp/FischerHW10} with decent performance.
@@ -35,49 +35,45 @@ life regular expressions \cite{regul_expres_librar}, but then there
 needs to be an oracle for the generated language and it is non-trivial
 to define generators for test inputs.
 
-Our approach eliminates the oracle by providing generators
-for positive as well as negative example words. Generators for
-positive examples, which match a given regular expression, have been
-investigated previously\cite{DBLP:journals/jcss/GrozM17,
+We eliminate the oracle by providing generators for positive and
+negative example words. Generators for positive examples, which match
+a given regular expression, have been
+investigated\cite{DBLP:journals/jcss/GrozM17,
   DBLP:journals/tcs/AckermanS09, DBLP:journals/jfp/McIlroy04,
-  DBLP:journals/actaC/Makinen97}, although often in a theoretical
-context. Generating negative example, which do \textbf{not} match a
-given expression, has not been considered before.
+  DBLP:journals/actaC/Makinen97}, although mainly in a theoretical
+context. Generating negative examples, which do \textbf{not} match an
+expression, has not been considered before.
 
-The generators presented in this work are slightly more general. They
+The generators presented in this work are yet more general. They
 apply to \textbf{extended regular expressions} that contain
 intersection and complement beyond the standard regular operators. The presence
 of the complement operator enables the algorithms to generate strings
 that certainly do not match a given (extended) regular expression.
 
-The algorithms are stated as lazy functional programs, which are guaranteed to be productive and
-produce total outputs. That is, a user can gauge the string size as
-well as the number of generated strings without risking nontermination.
+Our algorithms produce lazy streams, which are guaranteed to be
+productive. A user can gauge the string size or the
+number of generated strings without risking partiality.
 
-Implementations are available in Haskell and in OCaml, source code for
-both implementations is available on GitHub, and examples can be run
-in a Web App.\footnote{%
+Source code for implementations in Haskell and in OCaml is available
+on GitHub. Examples can be run in a Web App.\footnote{%
   The Web App is available at
   \url{https://regex-generate.github.io/regenerate/}.  Some links may
   reveal author identity, just using the App does not.  }.  Although
-they are not tuned for efficiency they generate languages at a rate
+not tuned for efficiency they generate languages at a rate
 between $1.3\cdot10^3$ and $1.4\cdot10^6$ strings per second, for
 Haskell, and up to $3.6\cdot10^6$ strings per second, for OCaml. The
 generation rate depends on the density of the language.
 
-The overall design makes significant use of laziness, which is
-investigated and explained using Haskell in
-Sections~\ref{sec:motivation} and~\ref{sec:improvements}. Fine tuning
-of the underlying data structures is investigated using OCaml in
-Section~\ref{sec:ocaml}.  Section~\ref{sec:bench} reports benchmarking
-results, Section~\ref{sec:related-work} discusses related work, and
-Section~\ref{sec:conclusions} concludes.
+\S~\ref{sec:motivation}--\ref{sec:improvements} investigate the
+overall design using Haskell. Fine tuning of the underlying data
+structures is investigated using OCaml in \S~\ref{sec:ocaml}.
+\S~\ref{sec:bench} reports benchmarking results, \S~\ref{sec:test}
+considers testing, \S~\ref{sec:related-work} discusses related work,
+and \S~\ref{sec:conclusions} concludes.
 
-We assume fluency with Haskell and OCaml throughout the paper.  Some
-familiarity with formal languages is helpful, but not required as the
-paper contains all relevant definitions. Our notation for formal
-languages is borrowed from one of the classic textbooks on the topic
-\cite{DBLP:books/daglib/0011126}.
+We assume fluency with Haskell and OCaml. 
+Familiarity with formal languages is helpful, but not required as the
+paper contains all relevant definitions. 
 
 %%% Local Variables:
 %%% mode: latex
