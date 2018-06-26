@@ -3,7 +3,7 @@
 
 \lstset{language=[Objective]Caml}
 
-In addition to the \haskell implementation, we implemented the complete
+We also implemented the complete
 language generation algorithm in \ocaml.
 % The \ocaml version only implements the ``latest'' version of the
 % algorithm with a segmented representation, fast backward lookup and convolutions
@@ -14,22 +14,22 @@ language generation algorithm in \ocaml.
 The main goal of this implementation is to experiment with strictness
 and various data structures for segments. 
 The key idea is that the internal order on words in a segment does not matter
-since each segment only contains words of the same length.
+because each segment only contains words of the same length.
 All we need is a data structure that supports the power series
 operations.
 %
 To facilitate such experimentation, we implemented the
 algorithm as a functor whose signature is shown in
 \cref{code:sigs:segment,code:sigs:word,code:sigs:regen}.
-In \ocaml, functors are parameterized modules that take modules
+\ocaml{} functors are parameterized modules that take modules
 as argument and return modules. Our implementation
 takes two data structures as arguments, words and segments,
-which allows us to test different representations easily without changing
-the code. It also forced us to find the minimal set of operations
-needed to implement the algorithm.
+to test different representations without changing
+the code.
+% It also forced us to find the minimal set of operations
+% needed to implement the algorithm.
 
 \begin{figure}[tp]
-  \centering
 \begin{lstlisting}
 module type WORD = sig
   type char
@@ -39,6 +39,7 @@ module type WORD = sig
   val append : t -> t -> t
 end
 \end{lstlisting}
+\vspace{-\baselineskip}
     \caption{Operations on words}
     \label{code:sigs:word}
 
@@ -66,6 +67,7 @@ module type SEGMENT = sig
   val memoize: t -> t
 end
 \end{lstlisting}
+\vspace{-\baselineskip}
     \caption{Operations on segments}
     \label{code:sigs:segment}
     
@@ -79,6 +81,7 @@ module Regenerate
   val iter : lang -> (Word.t -> unit) -> unit
 end
 \end{lstlisting}
+\vspace{-\baselineskip}
     \caption{Language generation as a functor}
     \label{code:sigs:regen}
 \end{figure}
@@ -86,15 +89,15 @@ end
 \paragraph{Characters and Words}
 
 \autoref{code:sigs:word} contains the signature for words.
-Surprisingly few operations are needed:
+It provides
 the empty word (for \code{One}),
 singleton words (for \code{Atom}), and to append two words.
-Neither an ordering nor a length operation is needed for words:
+Neither an ordering nor a length operation is needed:
 Comparison is encapsulated in the segment
 data structure and the length of a word is the index of the segment in
 which it appears.
 
-This signature is easily satisfied by the \ocaml \code{string}
+This signature is satisfied by the \ocaml \code{string}
 type (\ie arrays of bytes), arrays, lists of characters, or ropes. The
 type of individual characters is unrestricted.
 
@@ -109,14 +112,14 @@ We also requires the set operations
 %
 The product described in \autoref{eq:1} is decomposed in two parts:
 \begin{itemize}[leftmargin=*]
-\item An \code{append} function which implements $U_i V_{n-i}$. It computes the
-  product of two segments pairwise by appending their elements.
+\item An \code{append} function to implement $U_i V_{n-i}$. It computes the
+  product of two segments by appending their elements.
 \item A \code{merge} operation which computes the union of an arbitrary number
-  of segments. Its purpose is to collect the segments obtained
+  of segments. It collects the segments obtained
   by invocations of \code{append}.
 \end{itemize}
 %
-In order to experiment with transient data-structures, we require 
+Experimentation with transient data-structures require s
 an explicit \code{memoize} function that avoids recomputing segments accessed
 multiple times. 
 %
@@ -150,9 +153,10 @@ The additional constructor \code{Everything} allow to manipulate
 full languages symbolically, as in \cref{sec:more-finite-repr}.
 
 % The rest of the implementation is similar to the \haskell one.
-As an example, the implementation of the union of languages is shown below.
-The trailing unit argument \code{()} allows to drive the evaluation of the sequence lazily. With this definition, \code{union s1 s2}
-will not cause any evaluation until it is applied to \code{()}.
+As an example, the implementation of language union is shown below.
+The trailing unit argument \code{()} drive the evaluation of the
+sequence lazily. With this definition, \code{union s1 s2} cause no
+evaluation before is applied to \code{()}.
 \begin{lstlisting}
 let rec union s1 s2 () = match s1(), s2() with
   | Nothing, x | x, Nothing -> x
@@ -222,9 +226,9 @@ let rec union s1 s2 () = match s1(), s2() with
 
 \subsection{Data Structures}
 
-Thanks to our parameterized implementation, we can
-experiment with various data structures for segments. We present a
-range of potential implementations before comparing their performance.
+Our parameterized implementation enables experimentation with various
+data structures for segments. We present several possibilities before
+comparing their performance.
 
 \subsubsection{Ordered enumerations}
 
@@ -244,7 +248,7 @@ resulting functor \code{ThunkList}.
 %   l1 >>= fun x -> l2 >|= fun y -> Elt.append x y
 % \end{lstlisting}
 
-The only non-trivial operation, the n-way merge, 
+The n-way merge, 
 was implemented using a priority heap which holds pairs composed
 of the head of an enumeration and its tail. When a new element is required in the
 merged enumeration, we pop the top element of the heap, deconstruct
@@ -268,7 +272,7 @@ the tail and insert it back in the heap.
 %   next h0
 % \end{lstlisting}
 
-\begin{figure}[hbt]
+\begin{figure}[tp]
   \centering
 \begin{lstlisting}
 module type OrderedMonoid = sig
@@ -279,6 +283,7 @@ end
 module ThunkList (Elt : OrderedMonoid) :
   SEGMENTS with type elt = Elt.t
 \end{lstlisting}
+  \vspace{-\baselineskip}
   \caption{Signature for \texttt{ThunkList}}
   \label{code:thunklist}
 \end{figure}
@@ -332,9 +337,10 @@ We implemented a \code{LazyList} functor which is identical to the
 As the main operations on segments are set operations, one might 
 expect a set implementation to perform well. We implemented segments as sets
 of words using \ocaml's built-in \code{Set} module. \ocaml sets are implemented
-using binary trees with an imbalance of at most one.
+using balanced binary trees.
 The only operations not implemented by \ocaml's standard library are
-the n-way merge and the product, which can be implemented using folds and unions.
+the n-way merge and the product.
+%, which can be implemented using folds and unions.
 
 \subsubsection{Tries}
 
@@ -344,19 +350,16 @@ as maps from words to values where a word belongs to its domain if there is a
 path reaching a value labeled with the characters in the word.
 Tries seem well adapted to our problem:
 \begin{itemize}[leftmargin=*]
-\item All words in a segment have the same length. As no prefixes need
-  to be represented, we can elide the values at inner nodes and only consider
-  tries
-  where values are at the leaves.
+\item As all words in a segment have the same length, we only need values at the leaves.
+  % As no prefixes need to be represented.
 \item The \code{append} operation on tries can be implemented by
   grafting the second trie to all the leaves of the first one.
 \end{itemize}
 
-Hence, we can implement tries similarly to tries of integers as described
-by \citet{Okasaki98fastmergeable}.
+Hence, we can implement tries like tries of integers \cite{Okasaki98fastmergeable}.
 For simplicity, we do not use path compression, which means
 that branches are always labeled with one character.
-A trie is then either \code{Empty}, a \code{Leaf} containing a value, or a \code{Node} containing a map from characters
+A trie is either \code{Empty}, a \code{Leaf} containing a value, or a \code{Node} containing a map from characters
 to its child tries.
 % As we are only interested in the paths, we consider tries
 % without values. 
@@ -368,9 +371,9 @@ type trie =
   | Node of trie CharMap.t
 \end{lstlisting}
 
-The implementation of most operations follows the literature.
+% The implementation of most operations follows the literature.
 The only novel operation is \code{append} which computes the product of two sets.
-Since we do not store values at the leaves,
+As we only store values at the leaves,
 it can be implemented in a single traversal which will graft the appended trie
 \code{t0} at each leaf of \code{t}, without copies.
 
