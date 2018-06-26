@@ -75,6 +75,21 @@ operators for intersection ($\Rintersect{}{}$) and complement
 ($\Rcomplement{}$). This algorithm can generate the complement of
 $L(r)$ by asking it to generate $L(\Rcomplement r)$.
 
+\paragraph{Requirements}
+\label{sec:requirements}
+
+For the testing application, we propose some requirements for the generation algorithm to
+avoid inefficiencies and spurious testing failures.
+\begin{enumerate}
+\item No repetitions in the output. %, as they would lead to repeated tests.
+\item Output must not be partial.
+\item Throttling output with respect to word
+  length and number of generated words should be possible.
+\item Generation should be compositional.
+\item Reasonable efficiency.
+\end{enumerate}
+
+\section{Previous Work}
 \subsection{Brief Intermezzo on Formal Languages}
 \label{sec:research-question}
 
@@ -151,20 +166,6 @@ do not add extra descriptive power as regular languages are closed
 under intersection and complement \cite{DBLP:books/daglib/0011126},
 but expressions can be more concise.
 
-\subsection{Requirements}
-\label{sec:requirements}
-
-For the testing application, we propose some requirements for the generation algorithm to
-avoid inefficiencies and spurious testing failures.
-\begin{enumerate}
-\item No repetitions in the output. %, as they would lead to repeated tests.
-\item Output must not be partial.
-\item Throttling output with respect to word
-  length and number of generated words should be possible.
-\item Generation should be compositional.
-\item Reasonable efficiency.
-\end{enumerate}
-
 
 \subsection{McIlroy's Approach}
 \label{sec:naive-approach}
@@ -192,7 +193,7 @@ bijection we can show that for each pair of words $v \lleq w$ the
 number of words $u$ such that $v \lleq u$ and $u \lleq w$ is finite. 
 
 
-The Haskell code below defines a generator as a compositional function in terms of functions for
+The Haskell code below defines a generator as a compositional function in terms of
 the regular operations. 
 \begin{lstlisting}
 import qualified Data.Text as T
@@ -240,7 +241,7 @@ star lx@(x:xt) = if x == T.empty
   then star xt
   else T.empty : concatenate lx (star lx)
 \end{lstlisting}
-  \caption{Partial implementation of the regular operators}
+  \caption{McIlroy's implementation of regular operators}
   \label{fig:regular-operators-0}
 \end{figure}
 Figure~\ref{fig:regular-operators-0} contains McIlroy's implementation
