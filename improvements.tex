@@ -25,6 +25,7 @@ concatenate'' lx ly = collect ly []
         $ zipWith (liftA2 T.append) lx rly')
       : collect ysegs rly'
 \end{lstlisting}
+\vspace{-\baselineskip}
   \caption{Concatenation with convolution}
   \label{fig:concatenation-with-convolution}
 \end{figure}

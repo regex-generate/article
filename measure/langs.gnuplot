@@ -2,7 +2,7 @@
 
 # set terminal x11 size 700,700 font 'Deja Vu Sans Mono,14' persist
 
-set terminal pngcairo transparent size 2000,700 rounded font 'Deja Vu Sans,18'
+set terminal pngcairo transparent size 2000,650 rounded font 'Deja Vu Sans,18'
 set output 'langs.png'
 
 # set terminal tikz standalone size 15,6 textscale 0.5

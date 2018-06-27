@@ -241,6 +241,7 @@ star lx@(x:xt) = if x == T.empty
   then star xt
   else T.empty : concatenate lx (star lx)
 \end{lstlisting}
+\vspace{-\baselineskip}
   \caption{McIlroy's implementation of regular operators}
   \label{fig:regular-operators-0}
 \end{figure}
@@ -298,6 +299,7 @@ complement sigma lx = difference lsigmastar lx
   where
     lsigmastar = star (map T.singleton sigma)
 \end{lstlisting}
+\vspace{-\baselineskip}
   \caption{Additional operations in McIlroy's framework}
   \label{fig:more-regular-operators}
 \end{figure}
@@ -398,6 +400,7 @@ concatenate lx ly = collect 0
     combine n i =
       liftA2 T.append (lx !! i) (ly !! (n - i))
 \end{lstlisting}
+\vspace{-\baselineskip}
       % [T.append x y 
       % | x <- lx !! i, y <- ]
   \caption{Concatenation for segment representation}
@@ -445,6 +448,7 @@ star lx = lstar
     combine n i =
       liftA2 T.append (lx !! i) (lstar !! (n - i))
 \end{lstlisting}
+\vspace{-\baselineskip}
     % combine n i =
     %   [T.append x y 
     %   | x <- lx !! i, y <- lstar !! (n - i)]
@@ -467,6 +471,7 @@ complement sigma lx = difference lsigmastar lx
     extend lsigmai =
       [T.cons a w | a <- sigma, w <- lsigmai]
 \end{lstlisting}
+\vspace{-\baselineskip}
   \caption{Complementation for the segment representation}
   \label{fig:llo-complement}
 \end{figure}

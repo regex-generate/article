@@ -3,7 +3,7 @@
 
 \lstset{language=[Objective]Caml}
 
-We also implemented the complete
+We also implemented our
 language generation algorithm in \ocaml.
 % The \ocaml version only implements the ``latest'' version of the
 % algorithm with a segmented representation, fast backward lookup and convolutions
@@ -91,12 +91,12 @@ end
 \autoref{code:sigs:word} contains the signature for words.
 It provides
 the empty word (for \code{One}),
-singleton words (for \code{Atom}), and to append two words.
+singleton words (for \code{Atom}), and append.
 Neither an ordering nor a length operation is needed:
 Comparison is encapsulated in the segment
 data structure and the length of a word is the index of the segment in
 which it appears.
-
+%
 This signature is satisfied by the \ocaml \code{string}
 type (\ie arrays of bytes), arrays, lists of characters, or ropes. The
 type of individual characters is unrestricted.
@@ -106,8 +106,7 @@ type of individual characters is unrestricted.
 \autoref{code:sigs:segment} contains the signature for segments.
 % The first group of operations creates and tests for empty segments and
 % singleton segments. 
-The main requirement is to support the operations on power series as described in \autoref{sec:gener-cross-sect}.
-We also requires the set operations
+The main requirement is to support the operations on power series as described in \autoref{sec:gener-cross-sect} and the set operations
 \code{union}, \code{inter} and \code{inter}.
 %
 The product described in \autoref{eq:1} is decomposed in two parts:
@@ -119,7 +118,7 @@ The product described in \autoref{eq:1} is decomposed in two parts:
   by invocations of \code{append}.
 \end{itemize}
 %
-Experimentation with transient data-structures require s
+Experimentation with transient data-structures requires
 an explicit \code{memoize} function that avoids recomputing segments accessed
 multiple times. 
 %
@@ -317,7 +316,7 @@ over thunk lists by using a growing vector as cache.
 %
 Such a memoization function incurs a linear cost on enumerations. To test
 if this operation is worthwhile we implemented two modules:
-\code{ThunkList} where memoization is the identity and \code{ThunkListMemo}
+\code{ThunkList} without memoization and \code{ThunkListMemo}
 with the implementation described above.
 
 \paragraph{Lazy Lists}
@@ -338,8 +337,8 @@ We implemented a \code{LazyList} functor which is identical to
 
 As the main operations on segments are set operations, one might 
 expect a set implementation to perform well. We implemented segments as sets
-of words using \ocaml's built-in \code{Set} module. \ocaml sets are implemented
-using balanced binary trees.
+of words using \ocaml's built-in \code{Set} module which relies on
+balanced binary trees.
 The only operations not implemented by \ocaml's standard library are
 the n-way merge and the product.
 %, which can be implemented using folds and unions.
@@ -351,38 +350,29 @@ with a character and each node may contain a value. Tries are commonly used
 as maps from words to values where a word belongs to its domain if there is a
 path reaching a value labeled with the characters in the word.
 Tries seem well adapted to our problem:
-\begin{itemize}[leftmargin=*]
-\item As all words in a segment have the same length, we only need values at the leaves.
-  % As no prefixes need to be represented.
-\item The \code{append} operation on tries can be implemented by
-  grafting the second trie to all the leaves of the first one.
-\end{itemize}
-
+since all words in a segment have the same length, we only need values at the leaves.
+%   % As no prefixes need to be represented.
+% \item The \code{append} operation on tries can be implemented by
+%   grafting the second trie to all the leaves of the first one.
+% \end{itemize}
+%
 Hence, we can implement tries like tries of integers \cite{Okasaki98fastmergeable}.
 For simplicity, we do not use path compression, which means
 that branches are always labeled with one character.
-A trie is either \code{Empty}, a \code{Leaf} containing a value, or a \code{Node} containing a map from characters
+A trie is either \code{Empty}, a \code{Leaf} or a \code{Node} containing a map from characters
 to its child tries.
 % As we are only interested in the paths, we consider tries
 % without values. 
-
-\begin{lstlisting}
-type trie =
-  | Empty
-  | Leaf
-  | Node of trie CharMap.t
-\end{lstlisting}
-
+%
 % The implementation of most operations follows the literature.
 The only novel operation is \code{append} which computes the product of two sets.
-As we only store values at the leaves,
-it can be implemented in a single traversal which will graft the appended trie
-\code{t0} at each leaf of \code{t}, without copies.
+It can be implemented in a single traversal which grafts the
+appended trie \code{t0} at each leaf of \code{t}, without copies.
 
 \begin{lstlisting}
+type trie = Empty | Leaf | Node of trie CharMap.t
 let rec append t t0 = match t with
-  | Empty -> Empty
-  | Leaf -> t0
+  | Empty -> Empty | Leaf -> t0
   | Node map -> 
     CharMap.map (fun t' -> append t' t0) map
 \end{lstlisting}
