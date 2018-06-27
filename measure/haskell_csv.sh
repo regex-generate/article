@@ -5,18 +5,18 @@ IFS=$'\n\t'
 set -f #Disable globing
 
 
-ReBase=('a*' '(ab*)*' '~(a*)b')
+ReBase=('a*' '(ab*)*' '~(a*)b' '~(a*)&~(b*)')
 ReMore=('a*' 'a*b' 'ba*' '(ab*)*' '~(a*)b' '((a|b)(a|b))*' '(1(01*0)*1|0)*' '~(a*)&~(b*)')
 
-BackendBase=("naive" "ref" "seg" "refConv")
-BackendMore=("segConv")
+BackendBase=("McIlroy" "segStar" "segConvStar")
+BackendMore=("refConvStar")
 
 function genH {
     file="$2_$1_haskell.csv"
     echo "Regex $2 on backend $1 to $file"
     re-generate-exe \
         --alphabet "ab" -s20 \
-        -b "${1^}Star" \
+        -b "${1^}" \
         "$2" > "$file"
 }
 
@@ -38,5 +38,5 @@ go BackendMore ReMore
 
 echo "Gnuploting to haskell_all.png!"
 gnuplot haskell_all.gnuplot
-echo "Gnuploting to haskell_langs.png!"
-gnuplot haskell_langs.gnuplot
+# echo "Gnuploting to haskell_langs.png!"
+# gnuplot haskell_langs.gnuplot

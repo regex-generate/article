@@ -14,7 +14,7 @@ Both libraries provide test harnesses which generate
 regular expressions with positive and negative samples. The
 implementation under test compiles the regular expression and applies it to the samples. 
 The library exposes a sample generator in the style of
-property testing such as QuickCheck~\cite{DBLP:conf/icfp/ClaessenH00}.
+property testing libraries such as QuickCheck~\cite{DBLP:conf/icfp/ClaessenH00}.
 This way we can use the tooling already available in such libraries.
 %
 The simplified API of the \ocaml version is shown below.
@@ -33,7 +33,7 @@ val arbitrary:
 
 Regular expressions are easy to generate using QuickCheck-like
 libraries as they are represented by an algebraic datatype.  We
-restrict generated regular expressions to the star-height less than
+restrict generated regular expressions to star-heights less than
 3. While our technique can be used for regular expressions with
 arbitrarily nested repetitions, it can cause slowdown and large memory
 consumption which are inconvenient in the context of automated

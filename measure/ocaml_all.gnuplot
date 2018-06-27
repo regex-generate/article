@@ -2,7 +2,7 @@
 
 # set terminal x11 size 1500,500 font 'Deja Vu Sans Mono,14' persist
 
-set terminal pngcairo transparent size 1000,2550 rounded font 'Deja Vu Sans,19'
+set terminal pngcairo transparent size 1000,2000 rounded font 'Deja Vu Sans,19'
 set output 'ocaml_all.png'
 
 # set terminal tikz standalone size 15,6 textscale 0.5
@@ -29,7 +29,7 @@ set yrange [0:]
 # Put the legend at the bottom left of the plot
 set key left top
 
-set multiplot layout 5,1 columnsfirst scale 1,1 spacing 0,0
+set multiplot layout 4,1 columnsfirst scale 1,1 spacing 0,0
 
 set lmargin at screen 0.15; set rmargin at screen 0.98
 set tmargin 0.3
@@ -42,7 +42,7 @@ set style line 5 lt 1 lc rgb "#66a61e" lw 4 pt 7 ps 1.5 dt "_. "
 set style line 6 lt 1 lc rgb "#e6ab02" lw 4 pt 7 ps 1.5 dt ". "
 set style line 7 lt 1 lc rgb "#a6761d" lw 4 pt 7 ps 1.5 dt "-"
 
-re = '(ab*)* a* ~(a*)b ~(a*)&~(b*) (aa*b|bb*a)(a|b)*'
+re = '(ab*)* a* ~(a*)b ~(a*)&~(b*)'
 algo = "ThunkList ThunkListMemo LazyList StrictSet Trie"
 
 last = words(re)

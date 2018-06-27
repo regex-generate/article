@@ -42,9 +42,9 @@ set multiplot layout 1,2 columnsfirst scale 1,1
 unset key
 
 re = 'a* a*b ba* (ab*)* ~(a*)b ((a|b)(a|b))* (1(01*0)*1|0)* ~(a*)&~(b*)'
-algo="segConv"
+algo="refConvStar"
 
-set title "Haskell with segConv"
+set title "Haskell with refConv"
 plot for [i = 1:words(re)] word(re,i)."_".algo."_haskell.csv" using 2:($1/10000) title word(re,i) noenhanced with lines ls i
 
 

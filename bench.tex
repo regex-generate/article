@@ -42,11 +42,15 @@ strengths and weaknesses of the different approaches.
   evaluation measures the performance of \code{star} on a non-sparse
   language and of {concatenation} applied to a finite and an infinite
   language.
-\item $\Rconcat{\Rcomplement{(\Rstar{a})}}{b}$: Finally, this regular
+\item $\Rconcat{\Rcomplement{(\Rstar{a})}}{b}$: This regular
   expression exercises the complement operation and tests the
   concatenation of a very large language, 
   $P (w\in \Lang{\Rcomplement{(\Rstar a)}}) = 1$, to a much smaller
   language.
+\item $\Rintersect{\Rcomplement{(\Rstar{a})}}{\Rcomplement{(\Rstar{b})}}$:
+  This regular expression applies {intersection} to two large languages
+  and make use of the complement. Its goal is to measure the efficiency
+  of set operations.
 \end{itemize}
 
 \begin{figure}[!t]
@@ -58,30 +62,27 @@ strengths and weaknesses of the different approaches.
 
 In the evaluation, we consider five variants of the Haskell implementation.
 \begin{itemize}
-\item The \textbf{naive} implementation corresponds to the code developed by
-  the end of Section~\ref{sec:motivation}. It transforms to and from
-  segments on the fly and uses plain list indexing.
+\item \textbf{McIlroy} is our implementation of
+  the algorithm by \citet{DBLP:journals/jfp/McIlroy99}.
 \item The \textbf{seg} implementation uses the infinite list-based segmented
-  representation throughout (\cref{sec:segm-repr}). Moreover,
-  it relies on maps and sparse indexing for concatenation and closure
-  (\cref{sec:sparse-indexing}).
+  representation throughout (\cref{sec:segm-repr}).
 \item The \textbf{segConv} implementation additionally
-  applies the convolution approach presented in \cref{sec:convolution}.
-\item The \textbf{ref} implementation uses symbolic segments
-  from \cref{sec:more-finite-repr} combined with
-  maps and sparse indexing.
+  applies the convolution approach (\cref{sec:convolution,sec:faster-closure}).
+% \item The \textbf{ref} implementation uses symbolic segments
+%   from \cref{sec:more-finite-repr} combined with
+%   maps and sparse indexing.
 \item The \textbf{refConv} implementation combines
-   symbolic segments, sparse indexing, and the convolution approach.
+   symbolic segments (\cref{sec:segm-repr,sec:more-finite-repr}) with the convolution approach.
 \end{itemize}
 
 Performances are evaluated by iterating through the stream of words
-produced by the generator, forcing their evaluation.\footnote{In
+produced by the generator, forcing their evaluation\footnote{In
   Haskell, forcing is done using \lstinline{Control.DeepSeq}.}
 and recording the elapsed timed every 20 words.
 We stop the iteration after 5 seconds.
-The resulting graph plots the time (x-axis) against the number of words (y-axis) produced so far. The slope of the graph in indicates the generation speed of the plotted algorithm, high slope is correlated to high generation speed.  \cref{bench:haskell:all} contains the results for the Haskell implementations.
-
-Most algorithms generate between 3000 and 150000 words in the first
+The resulting graph plots the time (x-axis) against the number of words (y-axis) produced so far. The slope of the graph indicates the generation speed of the plotted algorithm, high slope is correlated to high generation speed.  \cref{bench:haskell:all} contains the results for the Haskell implementations.
+ 
+Most algorithms generate between $1.3\cdot10^3$ and $1.4\cdot10^6$ words in the first
 second, which seems more than sufficient for testing purposes.
 The \textbf{refConv} implementation
 which uses symbolic segments and convolutions is consistently in the
@@ -91,24 +92,23 @@ leading group.
 This observation validates that the
 changes proposed in \cref{sec:improvements} actually lead to
 improvements.
-
-Looking at each graph in more detail, we can make the following
+%
+Looking at each graph in detail, we can make the following
 remarks:
 \begin{itemize}[leftmargin=*]
 \item All implementations are equally fast on $\Rstar a$ except
-  the naive implementation, which  relies on list lookups without
+  \textbf{McIlroy}, which relies on list lookups without
   sparse indexing.
-\item For $\Rstar{(\Rconcat{a}{\Rstar{b}})}$ and
-  $\Rconcat{\Rcomplement{(\Rstar{a})}}{b}$, the graph of some implementations
+\item The graph of some implementations
   has the shape of ``skewed stairs''. We believe this phenomenon is due to
   insufficient laziness: when arriving at a new segment, part of the
   work is done eagerly which causes a plateau. When that part is done,
   the enumeration proceeds lazily.  As laziness and GHC
   optimizations are hard to control, we did not attempt to correct this.
-\item $\Rstar{(\Rconcat{a}{\Rstar{b}})}$ demonstrates that sparse indexing
-  does degrade performance when applying \code{star} to non-sparse languages.
-  Using the convolution technique presented in \cref{sec:convolution} resolves this problem.
-\item The \textbf{ref} and \textbf{refConv} algorithms are
+\item $\Rstar{(\Rconcat{a}{\Rstar{b}})}$ demonstrates that
+  the convolution technique presented in \cref{sec:convolution}
+  leads to significant improvements when applying \code{star} to non-sparse languages.
+\item The \textbf{refConv} algorithm is
   significantly faster on $\Rconcat{\Rcomplement{(\Rstar{a})}}{b}$
   compared to \textbf{seg} and \textbf{segConv}. We have no good
   explanation for this behavior as the code is identical up to the
@@ -117,12 +117,15 @@ remarks:
   is $\Lang{b}$, which is also represented finitely by
   \textbf{segConv} and should thus benefit from the convolution
   improvement in the same way as \textbf{refConv}.
+\item $\Rstar{(\Rconcat{a}{\Rstar{b}})}$ shows that all our algorithm have similar
+  performance profiles on set-operation. They are also significantly
+  faster than \textbf{McIlroy}.
 \end{itemize}
 
 
 \subsection{Comparing Data Structures in the \ocaml Implementation}
 \label{sec:bench:ocaml}
-\begin{figure}[!p]
+\begin{figure}[!tb]
   \centering
   \includegraphics[width=\linewidth]{measure/ocaml_all.png}
   \caption{Benchmark for the \ocaml implementation with various data-structures}
@@ -169,31 +172,9 @@ We can however make the following remarks.
   It seems that the linear cost of memoizing the thunk list and
   allocating the vectors
   is often higher than simply recomputing lists.
+\item $\Rstar{(\Rconcat{a}{\Rstar{b}})}$ shows that sorted enumerations and tries
+  perform well on set-operations, even compared to strict sets.
 \end{itemize}
-
-
-
-While the regular expressions presented previously do exercise
-\code{concatenation} and \code{star}, they do not exercise set
-operations.  To test set operations on non-trivial segments (that are
-neither full nor empty), we consider the language of words with at
-least one $a$ and one $b$. This language can be built in two ways:
-$\Rintersect{\Rcomplement{(\Rstar{a})}}{\Rcomplement{(\Rstar{b})}}$
-and $\Rconcat{(\Runion{a\Rstar{a}b}{b\Rstar{b}a})}{\Rstar{\Sigma}}$.
-The first expression applies {intersection} to two large languages,
-the second expression takes the union of smaller languages, but uses a
-concatenation.  The results are shown \cref{bench:ocaml:union}.
-Lazy and thunk lists, with or without
-memoization, perform well on unions and intersections but less so
-on concatenations. Performance of
-strict sets is surprisingly poor.
-Tries are very efficient on concatenations.
-
-% \begin{figure}[!t]
-%   \includegraphics[width=\linewidth]{measure/ocaml_union.png}
-%   \caption{Benchmarking \texttt{union} in the \ocaml data-structures}
-%   \label{bench:ocaml:union}
-% \end{figure}
 
 \subsection{The Influence of Regular Expressions on Performance}
 \begin{figure*}[!tp]

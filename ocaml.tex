@@ -142,10 +142,11 @@ and lang = unit -> node
 
 An enumeration is represented by a function which takes a unit argument and returns
 a node. A node, in turn, is either \code{Nothing} or a \code{Cons} of an
-element and the tail of the sequence. The empty enumeration, for instance, is
-represented as \code{fun () -> Nothing}.
-This representation is lazy, fast, lightweight, and almost as easy to
-manipulate as regular lists.
+element and the tail of the sequence.
+% The empty enumeration, for instance, is
+% represented as \code{fun () -> Nothing}.
+% This representation is lazy, fast, lightweight, and almost as easy to
+% manipulate as regular lists.
 % \footnote{See
 %   \url{https://github.com/ocaml/ocaml/pull/1002} for a long discussion
 %   on the topic.}
@@ -156,7 +157,7 @@ full languages symbolically, as in \cref{sec:more-finite-repr}.
 As an example, the implementation of language union is shown below.
 The trailing unit argument \code{()} drive the evaluation of the
 sequence lazily. With this definition, \code{union s1 s2} cause no
-evaluation before is applied to \code{()}.
+evaluation before it is applied to \code{()}.
 \begin{lstlisting}
 let rec union s1 s2 () = match s1(), s2() with
   | Nothing, x | x, Nothing -> x
@@ -230,12 +231,12 @@ Our parameterized implementation enables experimentation with various
 data structures for segments. We present several possibilities before
 comparing their performance.
 
-\subsubsection{Ordered enumerations}
+\paragraph{Ordered enumerations}
 
 Ordered enumerations, represented by thunk-lists, make
 for a light-weight set representation.
-To use an order, we require a comparison and an
-\code{append} function on words.  The \code{OrderedMonoid} signature
+To use an order, we require \code{compare} and
+\code{append} on words.  The \code{OrderedMonoid} signature
 captures these requirements. \autoref{code:thunklist} shows the
 resulting functor \code{ThunkList}.
 
@@ -288,14 +289,15 @@ module ThunkList (Elt : OrderedMonoid) :
   \label{code:thunklist}
 \end{figure}
 
-\subsubsection{Transience and Memoization}
+\paragraph{Transience and Memoization}
 
 During concatenation and star, we iterate over segments multiple times.
 As thunk lists are transient, iterating multiple times over the same list
 will compute it multiple times. To avoid this recomputation, we can implement memoization
-over thunk lists by pushing the elements in a growing vector as they are
-computed. Before evaluating a new thunk, we first check if it is already available
-in the vector. Otherwise, evaluate it, push it into the vector and return it.
+over thunk lists by using a growing vector as cache.
+% pushing the elements in a growing vector as they are
+% computed. Before evaluating a new thunk, we first check if it is already available
+% in the vector. Otherwise, evaluate it, push it into the vector and return it.
 % \begin{lstlisting}
 % let memoize f =
 %   let r = CCVector.create () in
@@ -318,21 +320,21 @@ if this operation is worthwhile we implemented two modules:
 \code{ThunkList} where memoization is the identity and \code{ThunkListMemo}
 with the implementation described above.
 
-\subsubsection{Lazy Lists}
+\paragraph{Lazy Lists}
 
-\ocaml also supports regular lazy lists using the builtin \code{Lazy.t} type:
-
-\begin{lstlisting}
-type 'a node =
-  | Nil
-  | Cons of 'a * 'a lazylist
-type 'a lazylist = 'a node Lazy.t
-\end{lstlisting}
-
-We implemented a \code{LazyList} functor which is identical to the
+\ocaml also supports regular lazy lists using the builtin \code{Lazy.t} type.
+%
+% \begin{lstlisting}
+% type 'a node =
+%   | Nil
+%   | Cons of 'a * 'a lazylist
+% type 'a lazylist = 'a node Lazy.t
+% \end{lstlisting}
+%
+We implemented a \code{LazyList} functor which is identical to
 \code{ThunkList} but uses lazy lists.
 
-\subsubsection{Strict Sets}
+\paragraph{Strict Sets}
 
 As the main operations on segments are set operations, one might 
 expect a set implementation to perform well. We implemented segments as sets
@@ -342,7 +344,7 @@ The only operations not implemented by \ocaml's standard library are
 the n-way merge and the product.
 %, which can be implemented using folds and unions.
 
-\subsubsection{Tries}
+\paragraph{Tries}
 
 Tries \cite{Fredkin1960} are prefix trees where each branch is labeled
 with a character and each node may contain a value. Tries are commonly used
