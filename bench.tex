@@ -4,13 +4,13 @@
 % Remove indentation on all itemize lists.
 \setlist[itemize]{leftmargin=*}
 
-We now compare the performances of our implementations in two dimensions:
+We consider the performance of our implementations in two dimensions:
 first the successive algorithmic refinements in the \haskell
 implementation presented in \cref{sec:gener-cross-sect,sec:improvements},
-then the various segments representations in \ocaml
+then the various segment representations in \ocaml
 as described in \cref{sec:ocaml}.
 
-Benchmarks were done on a ThinkPad T470 with an i5-7200U CPU and 12G of memory.
+Benchmarks were executed on a ThinkPad T470 with an i5-7200U CPU and 12G of memory.
 The \haskell benchmarks use the Stackage LTS 10.8 release and the \texttt{-O2} option.
 The OCaml benchmarks use \ocaml 4.06.1 with the flambda optimizer and the
 \texttt{-O3} option.
@@ -20,14 +20,13 @@ The OCaml benchmarks use \ocaml 4.06.1 with the flambda optimizer and the
 
 \subsection{Comparing Algorithms in the \haskell Implementation}
 
-\cref{sec:gener-cross-sect,sec:improvements} develop the
-algorithm for generating languages in a sequence of changes applied to
-a naive baseline algorithm. We now evaluate the impact of these
-changes on performance, which we plan to measure in terms of
-generation speed in words per second. It turns out that this speed
-depends heavily on the characteristics of the the regular expression
-considered. We thus choose three representative regular expressions to highlight the
-strengths and weaknesses of the different approaches.
+\cref{sec:gener-cross-sect,sec:improvements} develop the algorithm for
+generating languages in a sequence of changes applied to a baseline
+algorithm. We evaluate the impact of these changes on performance by
+measuring the generation speed in words per second. This speed depends
+heavily on the particular regular expression. Thus, we select four
+representative regular expressions to highlight the strengths and
+weaknesses of the different approaches.
 \begin{itemize}
 \item $\Rstar a$: This expression describes a very small language with $P (w\in L) = 0$.
   Nevertheless, it puts a lot of stress on the underlying
@@ -36,7 +35,7 @@ strengths and weaknesses of the different approaches.
   the output language contain exactly one element. This combination
   highlights the usefulness of sparse indexing and maps.
 \item $\Rstar{(\Rconcat{a}{\Rstar{b}})}$: On the opposite end of the
-  spectrum, the language of this regular expression is fairly large
+  spectrum, the language of this regular expression is large
   with $P (w\in L)=0.5$. The expression applies \code{star} to a
   language where segment $n+1$ consists of the word $ab^n$. Its
   evaluation measures the performance of \code{star} on a non-sparse
@@ -60,10 +59,9 @@ strengths and weaknesses of the different approaches.
   \label{bench:haskell:all}
 \end{figure}
 
-In the evaluation, we consider five variants of the Haskell implementation.
+We consider five variants of the Haskell implementation.
 \begin{itemize}
-\item \textbf{McIlroy} is our implementation of
-  the algorithm by \citet{DBLP:journals/jfp/McIlroy99}.
+\item \textbf{McIlroy} our implementation of \citet{DBLP:journals/jfp/McIlroy99}. 
 \item The \textbf{seg} implementation uses the infinite list-based segmented
   representation throughout (\cref{sec:segm-repr}).
 \item The \textbf{segConv} implementation additionally
@@ -75,12 +73,11 @@ In the evaluation, we consider five variants of the Haskell implementation.
    symbolic segments (\cref{sec:segm-repr,sec:more-finite-repr}) with the convolution approach.
 \end{itemize}
 
-Performances are evaluated by iterating through the stream of words
+Performance is evaluated by iterating through the stream of words
 produced by the generator, forcing their evaluation\footnote{In
   Haskell, forcing is done using \lstinline{Control.DeepSeq}.}
-and recording the elapsed timed every 20 words.
-We stop the iteration after 5 seconds.
-The resulting graph plots the time (x-axis) against the number of words (y-axis) produced so far. The slope of the graph indicates the generation speed of the plotted algorithm, high slope is correlated to high generation speed.  \cref{bench:haskell:all} contains the results for the Haskell implementations.
+and recording the elapsed timed every 20 words for 5 seconds.
+The resulting graph plots the time (x-axis) against the number of words (y-axis) produced so far. The slope of the graph indicates the generation speed of the algorithm, high slope is correlated to high generation speed.  \cref{bench:haskell:all} contains the results for the Haskell implementations.
  
 Most algorithms generate between $1.3\cdot10^3$ and $1.4\cdot10^6$ words in the first
 second, which seems sufficient for testing purposes.
@@ -97,15 +94,14 @@ Looking at each graph in detail, we can make the following
 remarks:
 \begin{itemize}[leftmargin=*]
 \item All implementations are equally fast on $\Rstar a$ except
-  \textbf{McIlroy}, which relies on list lookups without
-  sparse indexing.
+  \textbf{McIlroy}, which implements star inefficiently.
 \item The graph of some implementations
   has the shape of ``skewed stairs''. We believe this phenomenon is due to
   insufficient laziness: when arriving at a new segment, part of the
   work is done eagerly which causes a plateau. When that part is done,
   the enumeration proceeds lazily.  As laziness and GHC
   optimizations are hard to control, we did not attempt to correct this.
-\item $\Rstar{(\Rconcat{a}{\Rstar{b}})}$ demonstrates that
+\item The expression $\Rstar{(\Rconcat{a}{\Rstar{b}})}$ demonstrates that
   the convolution technique presented in \cref{sec:convolution}
   leads to significant improvements when applying \code{star} to non-sparse languages.
 \item The \textbf{refConv} algorithm is
@@ -117,9 +113,10 @@ remarks:
   is $\Lang{b}$, which is also represented finitely by
   \textbf{segConv} and should thus benefit from the convolution
   improvement in the same way as \textbf{refConv}.
-\item $\Rstar{(\Rconcat{a}{\Rstar{b}})}$ shows that all our algorithm have similar
-  performance profiles on set-operation. They are also significantly
-  faster than \textbf{McIlroy}.
+\item The expression $\Rintersect{\Rcomplement{(\Rstar{a})}}{\Rcomplement{(\Rstar{b})}}$
+  shows that all our algorithm have similar performance profiles on
+  set-operation. They are also significantly faster than
+  \textbf{McIlroy}.
 \end{itemize}
 
 
@@ -135,9 +132,9 @@ remarks:
 
 We have now established that the \textbf{refConv} algorithm
 provides the best overall performance.  The \haskell implementation,
-however, only uses lazy lists to represent segments.
+however, uses lazy lists to represent segments.
 To measure the influence of strictness and data structures on
-performances, we consider the functorized \ocaml implementation, as it facilitates such experimentation.
+performances, we conduct experiments with the functorized \ocaml implementation.
 We follow the same methodology as the \haskell evaluation using the
 regular expressions $\Rstar a$, $\Rstar{(\Rconcat{a}{\Rstar{b}})}$ and
 $\Rconcat{\Rcomplement{(\Rstar{a})}}{b}$.  The results are shown in
@@ -147,15 +144,15 @@ Unlike the previous benchmark for algorithms, there is no clear winner
 among the data structures.
 Lazy and Thunk lists, with or without memoizations, are the most ``well-rounded''
 implementations and perform decently on most languages.
-We can however make the following remarks.
+% We can however make the following remarks.
 \begin{itemize}[leftmargin=*]
 \item The \code{Trie} module
   is very fast thanks to its efficient concatenation.
-  It however performs badly on $\Rstar a$
+  It performs badly on $\Rstar a$
   due to the lack of path compression:
   in the case of $\Rstar a$, where each segment contains only one word, the
   trie degenerates to a list of characters.
-  We believe an implementation of tries with path compressions would perform
+  We believe an implementation of tries with path compression would perform
   significantly better.
 \item The other data structures exhibit a very pronounced slowdown on $\Rstar a$
   when reaching 150000 words.
@@ -168,11 +165,11 @@ We can however make the following remarks.
   \ocaml. These results also demonstrate that strict data structures
   should only be used when all elements up to a given length are
   needed. In such a case the stair pattern causes no problems.
-\item Memoization for thunk lists does not significantly increase performances.
+\item Memoization for thunk lists does not significantly improve performance.
   It seems that the linear cost of memoizing the thunk list and
   allocating the vectors
-  is often higher than simply recomputing lists.
-\item $\Rstar{(\Rconcat{a}{\Rstar{b}})}$ shows that sorted enumerations and tries
+  is often higher than simply recomputing the lists.
+\item The expression $\Rstar{(\Rconcat{a}{\Rstar{b}})}$ shows that sorted enumerations and tries
   perform well on set-operations, even compared to strict sets.
 \end{itemize}
 
@@ -193,7 +190,7 @@ with the \code{refConv} \haskell implementation and the \code{LazyList}
 Before presenting the results, a word of warning:
 We do not claim to offer a fair comparison between languages!
 The two implementations are not exactly the same and we made no attempt
-to measure both language under exactly the same conditions.
+to measure both languages under exactly the same conditions.
 %
 \cref{bench:langs} contains the results with a
 logarithmic scale for the word count as it enables better comparison
