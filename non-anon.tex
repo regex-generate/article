@@ -1,0 +1,33 @@
+
+\documentclass{acmart}
+\usepackage{hyperref}
+\title{Regenerate: Generation of test cases for regular expression engines}
+\subtitle{Supplemental material (non-anonymous)}
+\settopmatter{printfolios=false,printccs=false,printacmref=false}
+
+\begin{document}
+
+\maketitle
+
+We implemented our algorithm for test-cases generation in OCaml and Haskell.
+We also made a Web application based on the OCaml version, which
+is available on \url{https://regex-generate.github.io/regenerate/}.
+Both implementations are open source, and can be found at the following
+addresses:
+\begin{itemize}
+\item OCaml: \url{https://github.com/regex-generate/regenerate}\\
+  It can be installed directly with opam: \texttt{opam install regenerate}.
+\item Haskell: \url{https://github.com/peterthiemann/re-generate}
+\end{itemize}
+
+We also implemented a test-harness for the OCaml \texttt{Re} library.
+The test harness is available in the OCaml sources in the \href{https://github.com/regex-generate/regenerate/tree/master/test/re}{\texttt{test/re/}} directory. You can run it by installing all the required dependencies (\texttt{opam install -t --deps regenerate}) and running the tests (\texttt{make test}).
+  
+
+\end{document}
+
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: t
+%%% End:
