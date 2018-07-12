@@ -1,6 +1,6 @@
 \newif\ifsubmit
 \submitfalse
-
+%% 12 pp + bib
 \documentclass[sigplan,review,anonymous]{acmart}%
 \settopmatter{printfolios=true,printccs=false,printacmref=false}
 
@@ -49,7 +49,7 @@
 \usepackage{textcomp}
 
 \usepackage[noabbrev,nameinlink,capitalize]{cleveref}
-
+\crefname{section}{\S}{\S}
 % Custom macros
 \input{prelude}
 
@@ -84,7 +84,8 @@
 
 \begin{document}
 
-\title{Regenerate: A Language Generator for Extended Regular Expressions}
+\title{Regenerate: Generation of test cases for regular expression engines}
+% {Regenerate: A Language Generator for Extended Regular Expressions}
 
 \author{Gabriel Radanne}
 \affiliation{

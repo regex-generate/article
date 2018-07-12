@@ -1,23 +1,21 @@
 \section{Testing}
 \label{sec:test}
 
-We implemented our algorithms as libraries to create
-test harnesses for regular expression implementations.
-We used this library to implement a test harness for the \ocaml Re library%
+% We created
+% test harnesses for regular expression implementations using our algorithms.
+We implemented our algorithms in a library to implement a test harness for the \ocaml Re library%
 \footnote{\url{https://github.com/ocaml/ocaml-re}},
 a commonly used \ocaml regular expression implementation.
 %
-We also created a set of test cases for students projects in \haskell
-which helped them write better implementations.
+We also created a set of test cases for student projects in \haskell
+to help them write better implementations.
 
-Both libraries provide test-harnesses which generate
-regular expressions and positive and negative samples. The
-implementation under test can then compile the regular expression and apply it
-efficiently on the samples.
-The library exposes the sample generation as a generator in the style of
-property testing such as QuickCheck~\cite{DBLP:conf/icfp/ClaessenH00}.
-This allows us to use all the tooling already available in such libraries, for
-example to generate arbitrary regular expressions.
+Both libraries provide test harnesses which generate
+regular expressions with positive and negative samples. The
+implementation under test compiles the regular expression and applies it to the samples. 
+The library exposes a sample generator in the style of
+property testing libraries such as QuickCheck~\cite{DBLP:conf/icfp/ClaessenH00}.
+This way we can use the tooling already available in such libraries.
 %
 The simplified API of the \ocaml version is shown below.
 The main function \code{arbitrary n alphabet} returns a generator
@@ -33,27 +31,26 @@ val arbitrary:
   int -> Word.char list -> test QCheck.arbitrary
 \end{lstlisting}
 
-Regular expressions are represented as an algebraic datatypes which
-are easy to generate using QuickCheck-like libraries.
-The only constraints we place on generated regular expressions
-is that star-height should be less than 3. While our technique can be used
-for regular expressions with several nested repetitions, it can cause
-occasional slowdown and large memory consumption which are inconvenient
-in the context of automated testings.
+Regular expressions are easy to generate using QuickCheck-like
+libraries as they are represented by an algebraic datatype.  We
+restrict generated regular expressions to star-heights less than
+3. While our technique can be used for regular expressions with
+arbitrarily nested repetitions, it can cause slowdown and large memory
+consumption which are inconvenient in the context of automated
+testing.
 
-Our testing library only returns a finite number of samples. However, the
-language can (and often will) be infinite. We want to generate test-cases that will,
-on average, exercise the most the implementation to test. For this purpose, we
-use a technique similar to the fast approximation
-for reservoir sampling~\citep{DBLP:journals/toms/Vitter87}.
-When considering
-the sequence of words in the language, we skip $k$ elements where
-$k$ follows a power law of mean $n$. We then return the given
-sample, and stop the sampling with a probability $1/n$.
+Our library returns a finite number of samples even for an infinite language. We want to generate 
+test-cases that exercise the implementation under test as much as
+possible. For this purpose, we use a technique similar to the fast
+approximation for reservoir
+sampling~\citep{DBLP:journals/toms/Vitter87}.  When considering the
+sequence of words in the language, we skip $k$ elements where $k$
+follows a power law of mean $n$. We then return the given sample, and
+stop the sampling with a probability $1/n$.
 %
-Using this technique, we obtain on average $k$ samples that are regularly
-spaced out in the front of the stream, but will occasionally skip ahead
-and return very large words. This has proven satisfying at finding good
+This technique results on average in $k$ samples that are regularly
+spaced at the beginning of the stream, but will occasionally skip ahead
+and return very long words. This approach has proven satisfactory at finding good
 testing samples in practice.
 
 %%% Local Variables:

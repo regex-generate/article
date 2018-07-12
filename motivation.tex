@@ -2,77 +2,94 @@
 \label{sec:motivation}
 
 Suppose someone implemented a clever algorithm for
-regular expression matching. 
-We want to use this implementation, but we also want to play safe and
+regular expression matching, say  \code{match}. 
+We want to use this implementation, but we also want to 
 make sure it is largely bug free by subjecting it to extensive
-testing---verification is deemed to expensive.
-Such testing requires us to come up with test cases and
+testing.
+So we need to come up with test cases and
 implement a test oracle.
 
 
 A test case consists of a regular expression \code{r} and an input
-string \code{s}. If \code{match} is the implementation of matching
-and \code{matchOracle} is the test oracle, then
+string \code{s}. If \code{matchOracle} is the test oracle, then
 executing the test case means to execute \code{match r
   s} and check whether the result is correct by comparing it with
 \code{matchOracle r s}. 
 
-A popular way of conducting such a test is using the QuickCheck library
-\cite{DBLP:conf/icfp/ClaessenH00}, which performs property-based random testing. Using
-QuickCheck, we would write a random generator for regular expressions
-and then use the random generator for strings to generate many inputs for a
-generated regular expression.
+QuickCheck
+\cite{DBLP:conf/icfp/ClaessenH00} is a library for property-based random testing, which is well suited for conducting such a test. Using 
+QuickCheck, we would write a generator for regular expressions
+and then use the generator for strings to generate many inputs for each
+expression.
 
 However, this approach has a
 catch. Depending on the language of the regular expression, the
-probability that a random string is a member of the language can be
+probability that a uniformly distributed random string is a member of the language can be 
 severely skewed. As an example, consider the language $L = (ab)^*$ over the
 alphabet $\Sigma = \{a, b\}$. Although $L$ contains infinitely many
 words, the probability that a random word of
 length $n$ is an element of $L$ is
-\begin{itemize}
-\item $0$ if $n$ is odd and
-\item $\frac{1}{2^n}$ if $n$ is even.
-\end{itemize}
-Thus, the probability $p_n$ that a random word of length less than or equal to
+\begin{center}
+  \begin{tabular}{lcl}
+    $\bullet$ $0$ if $n$ is odd and &\qquad& $\bullet$  $\frac{1}{2^n}$ if $n$ is even.
+  \end{tabular}
+\end{center}
+The probability $p_n$ that a uniformly random word of length less than or equal to
 $n$ is an element of $L$ is very small:
 \begin{align*}
   p_n &= \frac{\lfloor n/2 \rfloor}{2^{n+1} - 1}
         \le \frac{n}{2^{n+2} - 2}
 \end{align*}
-The probability $P (w\in L)$ of (uniformly) randomly
-selecting a word in $L$ is zero in the limit.
+The \textbf{density of $L$} is the probability $P (w\in L)$ of (uniformly) randomly
+selecting a word in $L$, which is zero in the limit.
 
-Hence, there are two problems with testing the regular expression
-matcher.
+
+Hence, there are two problems.
 \begin{enumerate}
 \item How do we know whether the test oracle is correct, short of
   verifying it?
-\item How do we ensure that relevant test cases are generated, given
-  that the probability of randomly picking a word in the language is
-  $0$ or $1$ for many regular languages?\footnote{Exercise for the
-    interested reader:
-    \begin{enumerate}
-    \item Come up with a regular language $R$ such that $P(w\in R)$ is
-      different from $0$ or $1$.
-    \item Given a proper fraction $m/n$ (that is $n>0$ and $0\le m\le
-      n$) define a regular language $R$ such that $P (w\in R) = m/n$.
-    \end{enumerate}
-  }
+\item How do we generate relevant test cases, given
+  that the density of  many regular languages is
+  $0$ or $1$?
+  % \footnote{Exercise for the
+  %   interested reader:
+  %   \begin{enumerate}
+  %   \item Come up with a regular language $R$ such that $P(w\in R)$ is
+  %     different from $0$ or $1$.
+  %   \item Given a proper fraction $m/n$ (that is $n>0$ and $0\le m\le
+  %     n$) define a regular language $R$ such that $P (w\in R) = m/n$.
+  %   \end{enumerate}
+  % }
 \end{enumerate}
 
 
-Wouldn't it be nice to have a systematic and obviously correct means
+Wouldn't it be nice to have a systematic means
 of generating words \textbf{inside} of $L$ and \textbf{outside} of
-$L$? Such a generation algorithm would obviate the need for an oracle
-and it would make sure that we can control the number of test inputs
+$L$? Such a generation algorithm would eliminate the oracle
+and it would give us control over the number of test inputs
 in the language and in the language's complement.
 
-In the follwing we will tackle the slightly more general question of generating
-the language of a \emph{generalized regular expression}, 
-which subsumes the purpose of generating positive and negative sample
-words for testing.
+To construct such an algorithm we tackle the more general question of
+generating the language of a regular expression extended with
+operators for intersection ($\Rintersect{}{}$) and complement
+($\Rcomplement{}$). This algorithm can generate the complement of
+$L(r)$ by asking it to generate $L(\Rcomplement r)$.
 
+\paragraph{Requirements}
+\label{sec:requirements}
+
+For the testing application, we propose some requirements for the generation algorithm to
+avoid inefficiencies and spurious testing failures.
+\begin{enumerate}
+\item No repetitions in the output. %, as they would lead to repeated tests.
+\item Output must not be partial.
+\item Throttling output with respect to word
+  length and number of generated words should be possible.
+\item Generation should be compositional.
+\item Reasonable efficiency.
+\end{enumerate}
+
+\section{Previous Work}
 \subsection{Brief Intermezzo on Formal Languages}
 \label{sec:research-question}
 
@@ -108,20 +125,23 @@ words for testing.
                            && \code{| Not (GRE sig)}
   \end{align*}
   \end{minipage}
-  \caption{Generalized regular expressions}
+  \caption{Generalized regular expressions: syntax, semantics, and Haskell encoding}
   \label{fig:generalized-regular-expressions}
 \end{figure*}
 
-As customary, we write $\Sigma^*$ for the set of finite words over
-alphabet $\Sigma$, which is defined by $\bigcup_{i=0}^\infty \Sigma^i$
-where $\Sigma^0 = \{\varepsilon\}$ and $\Sigma^{i+1} = \Sigma \times
-\Sigma^i$.\footnote{Equivalently define $\Sigma^*$
-inductively as the smallest set such that $\varepsilon \in
-\Sigma^*$ and $\forall a\in\Sigma, \forall w\in\Sigma^*, aw \in \Sigma^*$}
-The semantics of an expression, $\Lang r \subseteq \Sigma^*$, is a set of
-words, which is also defined in
-Figure~\ref{fig:generalized-regular-expressions}. It relies on
-standard definitions from the theory of formal languages. We write
+Let $\Sigma$ be a finite set, the \textbf{alphabet}, totally ordered by $<$.  We write
+$\Sigma^*$ for the set of finite words over $\Sigma$, which is defined
+by $\bigcup_{i=0}^\infty \Sigma^i$ where $\Sigma^0 = \{\varepsilon\}$
+and $\Sigma^{i+1} = \Sigma \times \Sigma^i$.
+% \footnote{Equivalently
+%   define $\Sigma^*$ inductively as the smallest set such that
+%   $\varepsilon \in \Sigma^*$ and
+%   $\forall a\in\Sigma, \forall w\in\Sigma^*, aw \in \Sigma^*$}
+The
+semantics of a regular expression, $\Lang r \subseteq \Sigma^*$, is a set of
+words, defined in Figure~\ref{fig:generalized-regular-expressions}.
+% It relies on standard definitions from the theory of formal languages.
+We write
 $\varepsilon$ for the empty word and $u\cdot v$ for the concatenation
 of words $u, v \in \Sigma^*$. We write $|u|$ for the length of word
 $u$. Unless otherwise specified, we use $a, b, c, \dots$ to range over
@@ -136,40 +156,50 @@ language $U\subseteq \Sigma^*$ is defined as $U^* =
 \bigcup_{i=0}^\infty U^i$ where $U^0 = \{\varepsilon\}$ and $U^{i+i} =
 U \cdot U^i$. 
 
-A generalized regular expression
-(Figure~\ref{fig:generalized-regular-expressions}) is an expression
-built from the regular operators empty set, empty word, singleton word
-consisting of a single letter $a$ chosen from a finite alphabet
-$\Sigma$, alternative, concatenation, and Kleene closure. In addition, it
-may contain the operators intersection and complement. The extra
-operators do not add extra descriptive power as regular languages are
-closed under intersection and complement \cite{DBLP:books/daglib/0011126}, but
-generalized regular expressions can be much more concise. 
+An extended regular expression
+(Figure~\ref{fig:generalized-regular-expressions}) is built from the
+regular operators empty set, empty word, singleton word consisting of
+a single letter $a$ chosen from a finite alphabet $\Sigma$,
+alternative, concatenation, and Kleene closure, intersection, and complement. The extra
+operators 
+do not add extra descriptive power as regular languages are closed
+under intersection and complement \cite{DBLP:books/daglib/0011126},
+but expressions can be more concise.
 
 
-
-\subsection{Naive Approach}
+\subsection{McIlroy's Approach}
 \label{sec:naive-approach}
 
-We start with a naive implementation of the mathematical definition in
-Figure~\ref{fig:generalized-regular-expressions}. We define an
-alphabet by a list of \code{Char}.  We represent words by elements of Haskell's
-\code{Data.Text.Text} datatype, abbreviated to \code{T.Text}. We
-represent a language as a lazy list of \code{Text}, as a language
-can be an infinite set. There are two further restrictions.
-\begin{enumerate}
-\item The output of a generator should not contain repetitions
-  because we would like to guarantee that test inputs are different
-  from each others.
-\item The output of a generator should not be partial because it would
-  lead the test code to hang on a nonterminating input.
-\end{enumerate}
-
+\citet{DBLP:journals/jfp/McIlroy99} enumerates the words of a regular language as a
+strictly increasingly ordered infinite stream using Haskell. A key insight is to use the
+length-lexicographic ordering on words, which is defined by $u \lleq v$ if $|u|<|v|$ or
+$|u|=|v|$ and $u\le v$ in the usual lexicographic ordering. Here is a definition in Haskell.\footnote{The type
+  \lstinline{Data.Text.Text}, commonly imported as \lstinline{T.Text}, is an efficient
+  string data type from the Haskell library. We only use \lstinline{T.empty} for the empty
+  string, \lstinline{T.append} for string append, \lstinline{T.singleton} to create a
+  single letter word, and \lstinline{T.length}.}
 \begin{lstlisting}
-import Data.Text as T
+llocompare :: T.Text -> T.Text -> Ordering
+llocompare u v =
+  case compare (T.length u) (T.length v) of
+    EQ -> compare u v
+    LT -> LT
+    GT -> GT
+\end{lstlisting}
+This ordering gives raise to an
+enumeration of all words over the alphabet $\Sigma$ via an order-preserving
+bijection from the natural numbers to $\Sigma^*$. Using this
+bijection we can show that for each pair of words $v \lleq w$ the
+number of words $u$ such that $v \lleq u$ and $u \lleq w$ is finite. 
 
-type Alphabet = [Char]
-type Lang = [T.Text]
+
+The Haskell code below defines a generator as a compositional function in terms of
+the regular operations. 
+\begin{lstlisting}
+import qualified Data.Text as T
+
+type Alphabet = [Char] -- ascendingly sorted
+type Lang = [T.Text]   -- lazy stream of words
 
 generate :: Alphabet -> GRE Char -> Lang
 generate sigma r = gen r
@@ -186,413 +216,214 @@ generate sigma r = gen r
 
 \begin{figure}[btp]
 \begin{lstlisting}
-module Examples.Naive where
+module Examples.McIlroy where
 import qualified Data.Text as T
+import Examples.LLO (llocompare)
 
 union :: Lang -> Lang -> Lang
-union lx ly = lx ++ ly
-
-concatenate :: Lang -> Lang -> Lang
-concatenate lx ly =
-  [T.append wx wy | wx <- lx, wy <- ly ]
-
-intersect :: Lang -> Lang -> Lang
-intersect lx ly = [wx | wx <- lx, wx `elem` ly ]
-
-star :: Lang -> Lang
-star lx = concat lxi
-  where
-    lxi = [T.empty] : map (concatenate lx) lxi
-
-complement :: Alphabet -> Lang -> Lang
-complement sigma lx =
-  undefined
-\end{lstlisting}
-  \caption{Partial implementation of the regular operators}
-  \label{fig:regular-operators-0}
-\end{figure}
-As a basis for further discussion, we exhibit a partial 
-implementation in Figure~\ref{fig:regular-operators-0}.
-This implementation has a number of deficiencies.
-\begin{description}
-\item[union] The output may contain duplicates. If
-  \texttt{lx} is infinite, then no words from \texttt{ly} will ever be
-  produced. This behavior violates the specification of set union
-  because there may be elements in \texttt{ly} that never appear in
-  \texttt{union lx ly}.
-
-  If we restricted ourselves to finite lists, then replacing
-  \texttt{++} with \texttt{Data.List.union} would be an appropriate
-  implementation, but its worst-case time complexity is quadratic.
-\item[concatenate] The output may contain duplicates. If \texttt{ly}
-  is infinite, then only the first word in \texttt{lx} contributes to
-  the output.
-
-  For finite lists, an appropriate implementation would compose the
-  raw product computation with \texttt{Data.List.nub} to remove
-  duplicates. The worst-case complexity of \texttt{nub} is quadratic.
-\item[intersect] The output contains no duplicates, if \texttt{lx}
-  does not contain duplicates, either. If \texttt{ly} is infinite,
-  then the resulting list may be partial because the \texttt{elem}
-  operation may not terminate.
-
-  For finite lists, this implementation is appropriate.
-\item[star] The output may contain duplicates. If \texttt{lx} is
-  infinite, then the generated language is just \texttt{T.empty : lx},
-  so that many elements of \texttt{star lx} may not appear in the
-  output.
-
-  If \texttt{lx} is finite, then \texttt{star} can
-  be implemented in a way that guarantees no duplication. However, to
-  retain finiteness, we would have to impose an arbitrary limit on the
-  size of the output.
-\item[complement] In general there is no computable way to determine
-  whether a word occurs in a lazy list \texttt{lx}. Hence, we have no
-  good definition to propose.
-
-  If \texttt{lx} is finite, then it is possible to
-  enumerate its complement without repetitions. Again, to retain
-  finiteness, we have to impose an arbitrary limit on the size
-  of the output.
-\end{description}
-\begin{figure}[tp]
-\begin{lstlisting}
-module Examples.Finite where
-import qualified Data.Text as T
-import Data.List as L
-
-limit :: Int
-limit = 1024
-
-union :: Lang -> Lang -> Lang
-union lx ly = L.union lx ly
-
-concatenate :: Lang -> Lang -> Lang
-concatenate lx ly = L.nub [T.append wx wy | wx <- lx, wy <- ly ]
-
-intersect :: Lang -> Lang -> Lang
-intersect lx ly = [wx | wx <- lx, wx `elem` ly ]
-
-star :: Lang -> Lang
-star lx = take limit $ removeDuplicates $ concat lxs
-  where
-    lxs = [T.empty] : map (concatenate lx1) lxs
-    lx1 = L.delete T.empty lx
-    removeDuplicates [] = []
-    removeDuplicates (w:ws) = w : removeDuplicates (filter (/=w) ws)
-
-complement :: Alphabet -> Lang -> Lang
-complement sigma lx = take limit (concat lsigmastar L.\\ lx) 
-  where
-    lsigmastar = [T.empty] : map extend lsigmastar
-    extend lsigmai = [T.cons a w | a <- sigma, w <- lsigmai]
-\end{lstlisting}
-  \caption{Finite implementation of the regular operators}
-  \label{fig:finite-regular-operators}
-\end{figure}
-Figure~\ref{fig:finite-regular-operators} contains an implementation
-of a finite version of the generator module according to the preceding
-discussion. The implementation of \texttt{star} follows the definition
-of $U^*$ literally. It first recursively creates a list \texttt{lxs}
-of the iterates $U_\bullet^i$ where
-$U_\bullet = U \setminus \{\varepsilon\}$, concatenates all of
-them\footnote{It is easy to see that $U^* = U_\bullet^*$.}, removes
-the duplicates, and imposes the limit. Removing duplicates introduces
-quadratic worst-case time complexity in the size of the output.
-
-The implementation of \texttt{complement} generates the language
-$\Sigma^*$ analogously to the construction of $U^*$ in
-\texttt{star}, uses the list difference operator
-\texttt{L.\textbackslash\textbackslash} to remove elements of
-\texttt{lx}, and finally imposes the limit. Its worst-case run time is
-$O(m\cdot n)$ where $m$ is the limit and $n = \code{length lx}$.
-
-In summary, the naive approach in
-Figure~\ref{fig:regular-operators-0} can generate infinite languages,
-but has many drawbacks that lead to duplication and incompleteness
-(words in the language are not enumerated). Moreover, the complement
-is not computable for this approach.
-
-The finite approach in Figure~\ref{fig:finite-regular-operators}
-imposes an arbitrary limit on the number of generated words. This
-limit can lead to omitting words in nonempty languages where $P (w\in
-R) = 0$. Moreover, there are many places (in \texttt{union},
-\texttt{concatenate}, and \texttt{star}) with quadratic worst-case
-time complexity. 
-
-At this point, the question is: Can we do better? Can we come up with
-a generator that supports finite as well as infinite languages
-efficiently without incurring extraneous quadratic behavior?
-
-
-\subsection{Ordered Enumeration}
-\label{sec:ordered-enumeration}
-\begin{figure}[tp]
-\begin{lstlisting}
-union :: (Ord t) => [t] -> [t] -> [t]
 union xs@(x:xs') ys@(y:ys') =
-  case compare x y of
+  case llocompare x y of
     EQ -> x : union xs' ys'
     LT -> x : union xs' ys
     GT -> y : union xs ys'
 union xs ys = xs ++ ys
-\end{lstlisting}
 
+concatenate :: Lang -> Lang -> Lang
+concatenate [] ly = []
+concatenate lx [] = []
+concatenate (x:xt) ly@(y:yt) =
+  T.append x y : union (concatenate [x] yt) 
+                       (concatenate xt ly)
+
+star :: Lang -> Lang
+star [] = [T.empty]
+star lx@(x:xt) = if x == T.empty
+  then star xt
+  else T.empty : concatenate lx (star lx)
+\end{lstlisting}
+\vspace{-\baselineskip}
+  \caption{McIlroy's implementation of regular operators}
+  \label{fig:regular-operators-0}
+\end{figure}
+Figure~\ref{fig:regular-operators-0} contains McIlroy's implementation
+of the regular operators. His definitions for \lstinline{concatenate}
+and \lstinline{star} are more general, but that generality is not
+needed for this application.
+
+The \lstinline{union} operation is
+implemented as a merge of two strictly increasing streams; the last
+line only applies if one of the streams is empty. This definition is
+productive and yields a strictly increasing stream.
+
+The \lstinline{concatenate} operation is generic
+sequence multiplication, which is productive. It yields a strictly
+increasing stream because \lstinline{T.append x y} is the smallest
+element in the product of \lstinline{lx} and \lstinline{ly} if
+\lstinline{x} is smallest in \lstinline{lx} and \lstinline{y} is
+smallest in \lstinline{ly}. If one of the input languages is infinite, then there is
+a \lstinline{union} operation for each generated word.
+
+The \lstinline{star} operation is defined by closure under concatenation. The definition
+is productive and the output is strictly increasing as it is generated by
+\lstinline{concatenate}.
+
+This implementation is correct by construction as it closely follows the mathematical
+definition of the operations. However, McIlroy readily admits in the paper it is very
+inefficient.
+
+\subsection{Extending McIlroy}
+\label{sec:extending-mcilroy}
+
+McIlroy's paper does not mention that the same representation of a
+language enables the efficient implementation of
+\lstinline{intersect}, \lstinline{difference}, and hence the
+\lstinline{complement} operations!
+
+\begin{figure}[tp]
 \begin{lstlisting}
-intersect :: (Ord t) => [t] -> [t] -> [t]
+-- continuing module Examples.McIlroy
+
+intersect :: Lang -> Lang -> Lang
 intersect xs@(x:xs') ys@(y:ys') =
-  case compare x y of
+  case llocompare x y of
     EQ -> x : intersect xs' ys'
     LT -> intersect xs' ys
     GT -> intersect xs ys'
 intersect xs ys = []
-\end{lstlisting}
 
-\begin{lstlisting}
-difference :: (Ord t) => [t] -> [t] -> [t]
-difference xs@(x:xs') ys@(y:ys') =
-  case compare x y of
-    EQ -> difference xs' ys'
-    LT -> x : difference xs' ys
-    GT -> difference xs ys'
-difference xs ys = xs
+-- difference :: Lang -> Lang -> Lang
+-- omitted for space reasons
+
+complement :: Alphabet -> Lang -> Lang
+complement sigma lx = difference lsigmastar lx
+  where
+    lsigmastar = star (map T.singleton sigma)
 \end{lstlisting}
-  \caption{Union, intersection, and difference by merging lists}
-  \label{fig:merging-lists}
+\vspace{-\baselineskip}
+  \caption{Additional operations in McIlroy's framework}
+  \label{fig:more-regular-operators}
 \end{figure}
+Figure~\ref{fig:more-regular-operators} shows that intersection and difference can be
+implemented as simple variations of the \lstinline{union} operation. They run in linear
+time on finite lists. Moreover, given a stream corresponding to $\Sigma^*$, which is easy
+to define, and the difference operation, we obtain a definition of \lstinline{complement}.
 
-First, we concentrate on improving on the quadratic behavior. The key
-to improve the complexity of union, intersection, and complement lies
-in representing a language by a strictly increasingly sorted list.
-In this case, the three operations can be implemented by variations of
-the merge operation on lists as shown in
-Figure~\ref{fig:merging-lists}.
+At this point, we have an implementation of all 
+operations, but concatenation (and hence star) is
+inefficient. Observe further that neither \lstinline{intersect} nor
+\lstinline{difference} are productive:
+\lstinline{intersect} applied to two eventually disjoint infinite
+streams is partial. For example, computing the intersection
+$(ab)^* \cap (ba)^*$ yields a partial list, which starts with the
+empty word, but never produces another word. As another example,
+computing the difference $(aa)^* \setminus a^*$ never produces any
+word.  Hence, the \lstinline{complement} operation is not
+productive, either.
 
-The merge-based operations run in linear time on finite
-lists. However, the operations in Figure~\ref{fig:merging-lists} are
-incomplete on infinite lists. As 
-an example of the incompleteness, consider the languages $U = a\cdot
-(a+b)^*$ and the singleton language $V = \{b\}$ where $\Sigma = \{a, b\}$
-with $a<b$, represented as strictly increasing lists, the infinite
-list \code{lu} and the singleton list \code{lv}. The problem is that
-the list \code{union lu lv} does not contain the word $b$; more
-precisely, \code{T.singleton 'b' `elem` union lu lv} does not
-terminate whereas \code{u `elem` union lu lv} yields \code{True} for
-all \code{u} in \code{lu}. The source 
-of the problem is that Haskell's standard ordering of lists and
-\code{Text} is the \emph{lexicographic ordering}, which we call
-$\le$. It relies on an underlying total ordering on $\Sigma$ and is
-defined inductively:
-\begin{mathpar}
-  \inferrule{}{\varepsilon  \le v}
-  
-  \inferrule{u \le v}{au \le av}
+These definitions are not acceptable because they may produce
+spurious test failures due to timeouts. Moreover, they make it
+impossible to reliably gauge test inputs by length or number, 
+because the generator may get stuck in an unproductive loop before
+reaching the proposed limit.
 
-  \inferrule{a < b}{au \le bv}
-\end{mathpar}
+\section{Generation by Cross Section}
+\label{sec:gener-cross-sect}
 
-This total ordering
-is often used for $\Sigma^*$, but it has the property that
-there are words $v<w$ such that there are infinitely many words $u$
-with $v<u$ and $u<w$. For example, $v=a$, $w=b$, and $u\in U \setminus
-\{a\}$, which explains the nonterminating behavior just exhibited.
+We address the problems outlined with McIlroy's approach by switching to a
+different \textbf{segment representation} for the generated language.
+% It exploits some facts from formal language theory. 
 
-Fortunately, there is another total ordering on words with better
-properties. The
-\emph{length-lexicographic ordering} is defined by $u \lleq 
-v$ if $|u|<|v|$ or $|u|=|v|$ and $u\le v$ in the usual lexicographic
-ordering (but only applied to words of the same length). Here is a definition in Haskell.
-\begin{lstlisting}
-llocompare :: T.Text -> T.Text -> Ordering
-llocompare u v =
-  case compare (T.length u) (T.length v) of
-    EQ -> compare u v
-    LT -> LT
-    GT -> GT
-\end{lstlisting}
-This ordering has the additional advantage that it gives raise to a standard
-enumeration of all words over a totally ordered alphabet as an order-preserving
-bijective function from the natural numbers to $\Sigma^*$. Using this
-bijection we can show that for each pair of words $v \lleq w$ there is only a finite
-number of words $u$ such that $v \lleq u$ and $u \lleq w$. 
-
-For the sake of simplicity, we assume from now on that \code{T.Text}
-is ordered by \code{llocompare} and call the representation of a
-language by a strictly increasing list in length-lexicographic order
-its \emph{LLO representation}. 
-
-With the LLO representation, the operations \code{union},
-\code{intersect}, and \code{difference} run in linear time. If the input languages
-are finite of size $m$ and $n$, respectively, then $O(m+n)$
-comparisons, pattern matches, and cons operations are needed.
-Moreover, the operations are complete in the sense that any element in
-the output is sure to be detected by a terminating computation. 
-It is easy to implement a version of \code{elem} that exploits the LLO ordering,
-such that the element test is decidable for any infinite
-language.
-
-
-
-\subsubsection{Concatenation}
-To implement concatenation, we are in the following situation. Given
-two languages $U, V \subseteq \Sigma^*$ in LLO representation,
-produce the LLO representation of $U \cdot V =  \{ u\cdot v \mid u\in
-U, v\in V\}$. If we compute the product naively as in
-Figure~\ref{fig:regular-operators-0}, then the output is not in LLO
-form:\footnote{The example relies on the operator
-  \lstinline{Data.Monoid.<>} to append strings in any representation.}  
-\begin{verbatim}
-λ> let lu = ["a", "ab"]
-λ> let lv = ["", "b", "bb"]
-λ> [ u<>v | u <- lu, v <- lv ]
-["a","ab","abb","ab","abb","abbb"]
-\end{verbatim}
-In fact, the output violates both constraints: it is not increasing
-and it has duplicates.
-
-Perhaps the following observation helps: for each $u\in U$, the LLO
-representation of the language $u\cdot V$ can be trivially produced
-because the list \lstinline{[ u<>v |  v <- lv ]} is strictly
-increasing. This observation motivates the following definition of
-language concatenation (using \code{union} from Figure~\ref{fig:merging-lists}).
-\begin{lstlisting}
-concatenate' :: Lang -> Lang -> Lang
-concatenate' lx ly =
-  foldr union [] $ [[ T.append x y | y <- ly] | x <- lx]
-\end{lstlisting}
-This definition works fine as long as \code{lx} is finite. If it is
-infinite, then the \code{foldr} creates an infinitely deep nest of
-invocations of \code{union}, which do not make progress because
-\code{union} is strict in both arguments.
-
-At this point, the theory of formal languages can help. The notion of
-a \emph{formal power series} has been invented to reason about and
-compute with entire languages \cite{DBLP:books/daglib/0067812,DBLP:books/sp/KuichS86}. In full
-generality, a formal power series is a mapping from $\Sigma^*$ into a
-semiring $S$ and we write $\FPS{S}$ for the set of these
-mappings. Formally, an element $r \in \FPS{S}$ is written as the
-formal sum
-\begin{align*}
-  r &= \sum_{w \in \Sigma^*} (r,w) \cdot w
-\end{align*}
-where $(r,w) \in S$ is the coefficient of $w$ in $r$.
-A popular candidate for this semiring is the boolean semiring $B$
-because $\FPS{B}$ is isomorphic to the set of languages over
-$\Sigma$. This isomorphism maps $L\subseteq\Sigma^*$ to its
-characteristic series $r_L$ where $(r_L, w) = (w \in L)$.
-
-The usual language operations have their counterparts on formal power
-series. We consider just three of them where the ``additions'' and ``multiplications'' on the
-right side of the definitions take place in the underlying semiring.
-\begin{align*}
-  &\text{Sum:}
-  & (r_1 + r_2, w) &= (r_1, w) + (r_2, w) \\
-  &\text{Hadamard product:}
-  &(r_1 \odot r_2, w) &= (r_1, w) (r_2, w) \\
-  &\text{Product:}
-  & (r_1 \cdot r_2, w) &= \sum_{u\cdot v=w} (r_1, u) (r_2,v) 
-\end{align*}
-
-Ok, so what is the connection between formal power series and the LLO
-representation? The LLO representation of a language $L$ can be viewed as a systematic
-enumeration of the indexes of the non-zero coefficients of the
-characteristic power series of $L$. Thus, the \code{union} operator
-corresponds to the sum and the \code{intersect} operator corresponds
-to the Hadamard product (in $B$ the $+$ and $\cdot$ operators are
-$\vee$ and $\wedge$). 
-
-We also get a hint for computing the product. To find out whether $w
-\in U \cdot V$ we need to find $u\in U$ and $v\in V$ such that $u\cdot
-v = w$. Abstracting from this observation, we obtain that building a
-word $w$ with $|w| = n$ requires two words $u\in U$ and $v\in V$ such that $|u| +
-|v| = |w| = n$. Hence, it would be useful to have a representation
-that exposes the lengths of words.
-
-To obtain such a representation, we represent a language as a power series
+Let $L\subseteq\Sigma^*$ be a language and $n$ be a natural
+number. The \textbf{$n^{th}$ cross section of $L$} or
+\textbf{$n^{th}$ segment of $L$} is $L_n := L \cap \Sigma^n$, the set of
+words of length $n$ in $L$. As $L = \bigcup_{n\ge0} L_n$ we
+define the \textbf{segment representation of $L$} by the
+sequence of all segments, which we can write formally as a
+power series\footnote{These power series are different
+  from formal power series used in formal language theory
+  \cite{DBLP:books/daglib/0067812,DBLP:books/sp/KuichS86}.}
 \begin{gather*}
-  L = \sum_{n=0}^\infty L_nx^n
+  L = \Sigma_{n=0}^\infty L_nx^n\text.
 \end{gather*}
-where, for all $n$, $L_n \subseteq \Sigma^n$, a decomposition which corresponds
-directly to the definition of $\Sigma^*$. The language operations can
-be expressed on this representation similarly as on formal power
-series.\footnote{Not surprisingly, because this representation is
-  based on formal power series taken from $\FPS[x]{\Sigma^*}$
-  considering the semiring of formal languages with union ($+$)
-  and intersection ($\cdot$).}
+
+The language operations can be expressed on this representation by
+standard operations on power series over semirings
+$(\Power(\Sigma^*),\cup,\cdot)$ and $(\Power(\Sigma^*), \cup, \cap)$.
 \begin{align}
+  \label{eq:3}
   &\text{Sum:}
-  & (U + V)_n &= U_n \cup V_n \\
+  & (U \cup V)_n &= U_n \cup V_n \\
+  \label{eq:4}
   &\text{Hadamard product:}
-  & (U \odot V)_n &= U_n \cap V_n \\
+  & (U \cap V)_n &= U_n \cap V_n \\
   \label{eq:1}
   &\text{Product:}
-  & (U \cdot V)_n &= \bigcup_{i=0}^n U_i V_{n-i}
+  & (U \cdot V)_n &= \bigcup_{i=0}^n U_i\cdot V_{n-i}
 \end{align}
 
-At this point, we arrived at an actionable representation that we call
-the \emph{segment representation}. By applying
+By applying
 the usual spiel of representing a power series by its sequence of
-coefficients, the definition of product becomes executable.
+coefficients, all operations become executable.
+%
+As the alphabet $\Sigma$ is finite, each segment $L_n$ is a finite set. Hence, the sum and
+Hadamard product yield efficient definitions of language union and intersection. Due to
+the change of representation, the intersection is productive: it produces the next segment
+in finite time.
 
-As a first step, the function \code{segmentize} transforms the LLO
-representation into the segment representation. It splits the input
-into chunks that contain all words of the same length.
-\begin{lstlisting}
-segmentize :: Lang -> [Lang]
-segmentize = collect 0
-  where
-    collect n lx =
-      let (lxn, lxrest) = splitWhile (\xs -> T.length xs == n) lx in 
-      lxn : collect (n+1) lxrest
-
-splitWhile :: (a -> Bool) -> [a] -> ([a], [a])
-splitWhile p [] = ([], [])
-splitWhile p xs@(x:xs')
-  | p x = let (takes, drops) = splitWhile p xs' in (x:takes, drops)
-  | otherwise = ([], xs)
+The Haskell representation of a language has the type
+\begin{lstlisting}[numbers=none]
+type SegLang = [[T.Text]]
 \end{lstlisting}
-As the input sequence to \code{segmentize} is strictly increasing in the
-length-lexicographic ordering, the individual segments are strictly
-increasing, too.
+where the outer list is assumed to be an infinite lazy stream and each inner list is
+a finite, strictly increasing list of words of the same length. On
+words of the same length, the length-lexicographic order is the same
+as the lexicographic order.
+
+The union, intersection, and difference operators on
+\lstinline{SegLang} are defined according to Equations \eqref{eq:3} and
+\eqref{eq:4}.
+\begin{lstlisting}[numbers=none]
+union = zipWith McIlroy.union
+intersect = zipWith McIlroy.intersect
+difference = zipWith McIlroy.difference
+\end{lstlisting}
 
 \begin{figure}[tp]
 \begin{lstlisting}
-concatenate :: Lang -> Lang -> Lang
+concatenate :: SegLang -> SegLang -> SegLang
 concatenate lx ly = collect 0
   where
-    xsegs = segmentize lx
-    ysegs = segmentize ly
     collect n =
-      (foldr union [] $ map (combine n) [0 .. n]) ++ collect (n+1)
+      (foldr McIlroy.union []
+         $ map (combine n) [0 .. n])
+      : collect (n+1)
     combine n i =
-      [T.append x y | x <- xsegs !! i, y <- ysegs !! (n - i)]
+      liftA2 T.append (lx !! i) (ly !! (n - i))
 \end{lstlisting}
-  \caption{Concatenation for LLO representation}
+\vspace{-\baselineskip}
+      % [T.append x y 
+      % | x <- lx !! i, y <- ]
+  \caption{Concatenation for segment representation}
   \label{fig:concatenate-with-segments}
 \end{figure}
-We arrive at the implementation of concatenation in Figure~\ref{fig:concatenate-with-segments}.
-The function \code{combine} implements the body of the sum
-in Equation~\eqref{eq:1}. The output of \code{combine} is strictly increasing
-because \code{xsegs !! i} is strictly increasing and all words have the same length \code{i}.
-Each of them is prepended to the elements of the strictly increasing
-sequence \code{ysegs !! (n - i)}, so that the resulting sequence is
-strictly increasing.
 
-The function \code{collect} implements the summation in Equation~\eqref{eq:1}
-by taking the union of all \code{combine n i} for \code{i} in \code{[0
-.. n]}. As this union has finitely many operands, the nested
-invocations of \code{union} do not get stuck.
+\paragraph{Concatenation}
+As all
+words in $U_i \cdot V_{n-i}$ in Equation~\eqref{eq:1} have length $n$, they belong to the
+$n^{th}$ segment of the result. Both $U_i$ and
+$V_{n-i}$ are strictly increasingly sorted, so the standard enumeration of pairs from
+$U_i \times
+V_{n-i}$ is sorted in the same way. Hence, our implementation of
+\lstinline{concatenate} in Figure~\ref{fig:concatenate-with-segments}.  Function \code{combine} implements $U_i
+\cdot V_{n-i}$ and  \lstinline{collect n} computes the stream of segments starting from
+the $n^{th}$. Expression \lstinline{lx !! i} accesses the \lstinline{i}th element of
+list \lstinline{lx}.  
 
-\subsubsection{Kleene Closure}
 
-To compute the Kleene closure, the same ideas as for
-concatenation apply. The star operation is only defined on a \emph{proper}
-power series where $L_0 = \emptyset$ (so that the language does not
-contain the empty word $\varepsilon$). In this case $L^* =
-\bigcup_{n=0}^\infty L^n = L^0 + \bigcup_{n=1}^\infty L^n = \{\varepsilon\}
-+ L \cdot \bigcup_{n=0}^\infty L^n  =   \{\varepsilon\}
-+ L \cdot L^*$. Surprisingly, this calculation can be turned into an
-effective algorithm for computing the coefficients of the power series. 
+\paragraph{Kleene Closure}
+It is well known that $U^* = (U\setminus\{\varepsilon\})^*$. 
+Hence, a simple calculation yields an
+effective algorithm for computing the coefficients of the power series for $U^*$. 
 \begin{align}
   \label{eq:2}
   &%\text{Star:}
@@ -600,84 +431,74 @@ effective algorithm for computing the coefficients of the power series.
   & (U^*)_n &= (U \cdot U^*)_n = \bigcup_{i=1}^n U_i\cdot (U^*)_{n-i}
 \end{align}
 The key observation is that Equation~\eqref{eq:2} is a proper
-inductive definition of the power series for $U^*$ if we assume that
-$\varepsilon \notin U$. By this assumption $U_0 = 0$ and the union
+inductive definition of the power series for $U^*$. It never touches $U_0$ and the union
 only touches the coefficients $(U^*)_{n-1}$ down to $(U^*)_0$. Hence, $(U^*)_n$ is well
 defined as it only relies on $U$ and previously computed indexes!
 
 \begin{figure}[tp]
 \begin{lstlisting}
-star :: Lang -> Lang
-star lx = concat rsegs
+star :: SegLang -> SegLang
+star lx = lstar
   where
-    xsegs = segmentize lx
-    rsegs = [T.empty] : collect 1
+    lstar = [T.empty] : collect 1
     collect n =
-      (foldr union [] $ map (combine n) [1 .. n]) : collect (n + 1)
+      (foldr union [] 
+         $ map (combine n) [1 .. n])
+      : collect (n + 1)
     combine n i =
-      [T.append x y | x <- xsegs !! i, y <- rsegs !! (n - i)]
+      liftA2 T.append (lx !! i) (lstar !! (n - i))
 \end{lstlisting}
-  \caption{Kleene closure for LLO representation}
+\vspace{-\baselineskip}
+    % combine n i =
+    %   [T.append x y 
+    %   | x <- lx !! i, y <- lstar !! (n - i)]
+  \caption{Kleene closure for segment representation}
   \label{fig:star-with-segments}
 \end{figure}
 Figure~\ref{fig:star-with-segments} contains the resulting implementation of Kleene closure.
-After the discussion of concatenation, there is not much left to say
-as the \code{collect} and \code{combine} functions are almost
-identical. The key point is to see that this definition is well
-defined, as we argued.
+The \code{collect} and \code{combine} functions are almost
+identical, \lstinline{lstar} is defined recursively, but this recursion is well-founded as
+we just argued. 
 
-\subsubsection{Complement}
+\paragraph{Complement}
 \begin{figure}[tp]
 \begin{lstlisting}
-complement :: Alphabet -> Lang -> Lang
-complement sigma lx = difference (concat lsigmastar) lx
+complement :: Alphabet -> SegLang -> SegLang
+complement sigma lx = difference lsigmastar lx
   where
-    lsigmastar = [T.empty] : map extend lsigmastar
-    extend lsigmai = [T.cons a w | a <- sigma, w <- lsigmai]
+    lsigmastar =
+      [T.empty] : map extend lsigmastar
+    extend lsigmai =
+      [T.cons a w | a <- sigma, w <- lsigmai]
 \end{lstlisting}
-  \caption{Complementation for the LLO representation}
+\vspace{-\baselineskip}
+  \caption{Complementation for the segment representation}
   \label{fig:llo-complement}
 \end{figure}
-The definition of the complement of language $U$ is $\Sigma^*\setminus
-U$.  The \code{difference} operator in Figure~\ref{fig:merging-lists}
-is an implementation of set difference $\setminus$ on LLO represented
-sets.  If \code{lx} is the LLO 
-representation of $U$, then \code{lx} is a suitable argument for
-\code{difference}.  Looking back at the definition of
-\code{lsigmastar} in Figure~\ref{fig:finite-regular-operators}, we see
-that its output is already in LLO
-representation. Figure~\ref{fig:llo-complement} just puts the two
-definitions together.
+To define the \lstinline{complement} operation, all we need is to define the segment
+representation of $\Sigma^*$, which can be done analogously to computing the closure, and
+apply the \code{difference} operator. Figure~\ref{fig:llo-complement} puts it all together.
 
-\subsubsection{Discussion}\label{sec:motivation-discussion}
-What have we gained? We can generate LLO
-representations for all regular languages. We can compute
-concatenation and Kleene closure effectively by transforming the
-language into a power series and back.
+\paragraph{Discussion}\label{sec:motivation-discussion}
+What have we gained?
 
-However, there is a catch as the output of \code{segmentize} is always
-an infinite list. The advantange of this choice is the simplicity of
-the code: all index accesses into the lists \code{xsegs} and
-\code{ysegs} are defined. The disadvantage is
-that \code{concatenate} returns a partial list if both argument lists
-are finite.
-This situation arises in the following example:
-\begin{verbatim}
-λ> concatenate [""] [""]
-[""
-\end{verbatim}
-With these inputs, only \code{xsegs !! 0} and \code{ysegs !! 0} are
-non-empty, so that for
-\code{n>0}
-\begin{lstlisting}[numbers=none]
-collect n = [] ++ collect (n+1)
-\end{lstlisting}
-Obviously, such a definition is not productive.
+Productivity: We can generate productive segment
+representations from all extended regular expressions. The implementation of each
+operation is guided by corresponding operations on power series.
 
-A similar phenomenon arises with \code{star}, where \code{star []} and
-\code{star [""]} result in partial lists. All other input languages
-result in infinite languages, which are generated productively.
+Easy Gauging: To restrict the generated segmented output, say \code{segs}, to words of
+length less than a given 
+bound \code{n}, all we need to do is \code{concat (take n segs)}. The result is
+a finite list of words. In contrast, such filtering is not effective
+for the LLO representation where
+\lstinline{takeWhile (\w -> T.length w <  n) llo} may yield a partial list.
 
+
+There is a catch: As the output is always an infinite list, we loose the
+information that a language is finite. The advantange of this choice is simplicity: index
+accesses into the languages \code{lx} and \code{ly} are always defined. 
+However, the list index operation used in the \lstinline{combine} function requires time
+linear in its index argument, which may be inefficient.  
 The next section discusses ways to address these shortcomings.
 
 %%% Local Variables:

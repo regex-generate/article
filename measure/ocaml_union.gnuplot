@@ -2,7 +2,7 @@
 
 # set terminal x11 size 1500,500 font 'Deja Vu Sans Mono,14' persist
 
-set terminal pngcairo transparent size 1000,1400 rounded font 'Deja Vu Sans,19'
+set terminal pngcairo transparent size 1000,1300 rounded font 'Deja Vu Sans,19'
 set output 'ocaml_union.png'
 
 # set terminal tikz standalone size 15,6 textscale 0.5
@@ -13,9 +13,9 @@ set xtics nomirror
 set ytics nomirror
 set mxtics 2
 set mytics 2
-set style line 80 lc rgb "#808080"
+set style line 80 lc rgb "#4D4D4D"
 set border 3 back ls 80
-set style line 81 lt 0 lc rgb "#808080" lw 0.5
+set style line 81 lt 0 lc rgb "#4D4D4D" lw 0.9
 set grid xtics
 set grid ytics
 set grid back ls 81
