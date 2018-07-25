@@ -36,7 +36,7 @@
 \texttt{thiemann@informatik.uni-freiburg.de}
 }
 %\date[\today]{\today}
-\date[2018-06-15]{15 June 2018}
+\date[2018-07-25]{25 July 2018}
 
 % begin titlepage
 % "`normal"' front page template:
@@ -342,8 +342,12 @@ union xs@(x:xt) ys@(y:yt) =
 union xs ys = xs ++ ys
 \end{lstlisting}
   \begin{itemize}
-  \item \textbf{Our Observation:} intersection and difference are analogous
-  \item Productive, time determined by comparison
+  \item Productive, next element produced in O(1) time
+  \item \textbf{Our Observation:}
+    \begin{itemize}
+    \item intersection and difference are analogous
+    \item but \textbf{not} productive
+    \end{itemize}
   \end{itemize}
 \end{frame}
 
@@ -391,12 +395,11 @@ complement sigma lx = difference lsigmastar lx
   \frametitle{What did we achieve so far?}
   \begin{itemize}
   \item<+-> definitions for all operations needed in extended regular expressions
-  \item<+-> productive definitions for \code{union},
-    \code{intersection}, \code{concatenate}, \code{star}
+  \item<+-> productive definitions for \code{union}, \code{concatenate}, \code{star}
   \end{itemize}
   \begin{block}<+->{But}
     \begin{itemize}
-    \item partial results for some expressions involving complement
+    \item partial results for some expressions involving complement, intersection
     \item cannot throttle with a length bound
     \end{itemize}
   \end{block}
