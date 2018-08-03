@@ -1,76 +1,35 @@
-\documentclass{article}
+\documentclass{llncs}
 % Encoding and lang
 \usepackage[T1]{fontenc}
 \usepackage[utf8]{inputenc}
 \usepackage[english]{babel}
 
 % Graphical packages
-\usepackage{graphicx}
+% \usepackage{graphicx}
 \usepackage{xcolor}
 
-% Math
-\usepackage{amsmath}
-\usepackage{amsfonts}
-\usepackage{amssymb}
-\usepackage{amsthm}
-% \usepackage{mathrsfs}
-\usepackage{mathtools}
-% \usepackage{textcomp}
-% \usepackage{textgreek}
-\usepackage{cmll}
-\usepackage{mathpartir}
-\usepackage{url}
-
-% Good citations and bibliography
-\usepackage{natbib}
-
-% % Pictures and latex lists
-% \usepackage{wrapfig}
-% \usepackage{float}
-\usepackage{caption}
-\usepackage{subcaption}
-% \usepackage{placeins}
-% \usepackage{array}
-% \usepackage{paralist}
-\usepackage{enumitem}% Compact lists
-\usepackage{pifont}
 
 % Specialized packages
 % \usepackage{syntax} % Grammar definitions
-\usepackage{verbatim}
+% \usepackage{verbatim}
 \usepackage{listings} % Code
-\usepackage{xspace} % Useful for macros
-\usepackage{mathpartir}
-
-\usepackage{textcomp}
+% \usepackage{xspace} % Useful for macros
 
 \usepackage[noabbrev,nameinlink,capitalize]{cleveref}
+\usepackage{hyperref}
 
 % Custom macros
 \input{../prelude}
-
-% Declare a new environment for floating examples. Used like figure.
-\usepackage{newfloat}
-\DeclareFloatingEnvironment[
-listname={List of Examples},
-name={Example},
-placement={!ht},
-]{ex}
-\crefname{ex}{Example}{Examples}
-\Crefname{ex}{Example}{Examples}
-\crefname{subex}{Example}{Examples}
-\Crefname{subex}{Example}{Examples}
-
-% Bibliography
-% \bibliographystyle{ACM-Reference-Format}
-% \citestyle{acmauthoryear}
 \bibliographystyle{plain}
 
 \begin{document}
 \title{Generating Tests for Regular Expression Engines}
 
-\author{Gabriel Radanne \qquad Peter Thiemann \\ University of Freiburg, Germany}
-% \email{radanne@informatik.uni-freiburg.de}
+\author{Gabriel Radanne \and Peter Thiemann}
+\institute{University of Freiburg, Germany \\
+  \email{\{radanne,thiemann\}@informatik.uni-freiburg.de}
+}
+% 
 
 
 % \author{Peter Thiemann}
@@ -137,7 +96,11 @@ languages at a rate between $1.3\cdot10^3$ and $1.4\cdot10^6$ strings per
 second, for Haskell, and up to $3.6\cdot10^6$ strings per second, for
 OCaml. The generation rate depends on the density of the language.
 
-
+\begin{itemize}
+\item Web app available at \url{https://regex-generate.github.io/regenerate/}
+\item OCaml code available at \url{https://github.com/regex-generate/regenerate}
+\item Haskell code available at \url{https://github.com/peterthiemann/re-generate}
+\end{itemize}
 \bibliography{../biblio}
 \end{document}
 
