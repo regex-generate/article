@@ -494,7 +494,7 @@ for the LLO representation where
 \lstinline{takeWhile (\w -> T.length w <  n) llo} may yield a partial list.
 
 
-There is a catch: As the output is always an infinite list, we loose the
+There is a catch: As the output is always an infinite list, we lose the
 information that a language is finite. The advantange of this choice is simplicity: index
 accesses into the languages \code{lx} and \code{ly} are always defined. 
 However, the list index operation used in the \lstinline{combine} function requires time
