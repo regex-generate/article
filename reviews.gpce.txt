@@ -1,0 +1,342 @@
+Review #31A 
+===========================================================================
+
+Overall merit 
+------------- 
+A. Accept 
+
+Reviewer expertise 
+------------------ 
+Y. Knowledgeable 
+
+Paper summary 
+------------- 
+The paper proposes an algorithm that, given a (generalised) regular 
+expression $r$, generates the words accepted by $r$. By supporting 
+regex complement, the algorithm can also generate words that are _not_ 
+accepted by $r$. The main use case is the generation of 
+positive/negative test cases for regular expression parsers, 
+eliminating the need of an oracle. 
+
+The basis of the paper is a work by McIlroy (2004), that also 
+generates the strings matching a regex, but has two limitations: 
+inefficient language concatenation, and lack of productivity for 
+language intersection and difference. To tackle these issues, the key 
+idea of the paper is to adopt a _segment representation_ of the 
+language of a regex: roughly, the language is rendered as a lazy 
+stream of lists of words of the same length. This allows language 
+operations (and string generation) to be implemented productively, and 
+efficiently. 
+
+The paper describes two implementations of the algorithm (in Haskell 
+and OCaml), and provides several benchmarks that show good performance 
+(from $10^3$ to $10^6$ strings per second, depending on the regex). 
+
+Comments for author 
+------------------- 
+The paper is a good fit for GPCE, and I believe that it should be 
+accepted. 
+
+**Novelty:** 
+The paper directly builds upon previous works (McIlroy'04), but to 
+best of my knowledge, its key insight (i.e., the "Generation by Cross 
+Section" in Section 4), and the resulting optimisations, are both 
+novel, and interesting. 
+
+**Significance:** 
+The paper provides a nice contribution with clear applications, and 
+significantly improves the state of the art. 
+
+**Evidence:** 
+The benchmarks show good performance and are discussed in detail, 
+explaining the advantages and disadvantages of the various 
+optimisations introduced throughout the paper. The availability of the 
+implementations as open source software is a nice addition, 
+and allows to replicate the results and build upon them. 
+
+**Clarity:** 
+The paper is clear, polished and generally well written (modulo a few 
+things discussed below): it nicely guides the reader by first 
+presenting a basic version of the algorithm (based on McIlroy'04), 
+highlighting its limitations, and addressing them with different 
+strategies, that lead to more sophisticated implementations. 
+Related works are clearly illustrated. 
+
+### Improvements 
+
+Although I liked the paper, I would recommend to improve two things: 
+
+#### Power series? 
+
+I did not understand how "power series" are used in the treatment: 
+
+* "power series" is one of the paper keywords 
+
+* there are various references to McIlroy'99 (which is, indeed, a 
+paper on power series in Haskell) - but all such references are 
+wrong and should point to McIlroy'04 (on regex language generation) 
+
+* line 371 shows a "power series representation" of a language, but I 
+do not understand it: where are the "coefficients", mentioned a few 
+lines later? What does $L_n x^n$ mean? 
+
+* Similarly, I do not understand the reference to the "stream of 
+boolean coefficients" discussed (as future work) in lines 1299-1303 
+
+However, besides a few unclear reference to "power series 
+coefficients" on page 4, the paper is understandable, even if one 
+ignores lines 369-374, and just uses the `SegLang` language 
+representation in Haskell (line 407), that can be intuitively related 
+to the explanation on lines 362-368. 
+
+My recommendation is: please clarify how power series are used in the 
+treatment - or just remove the references (and lines 369-374) if they 
+are not necessary. 
+
+#### Benchmarks 
+
+Figures 13, 14 and 15 show the plot of the number of generated strings 
+vs. time; but how was the data produced? Do the plots represent a 
+single execution? Or, do they show the average of multiple (how many?) 
+repetitions? 
+
+I recommend to provide more details. If the benchmarks are (as they 
+should be) an average of multiple executions, it would be nice to also 
+provide some information about the standard deviation: e.g., it would 
+be interesting to know if some algorithm is also jittery, and shows a 
+wide difference of performance across repetitions. 
+
+### Minor notes 
+
+Line 84/85: missing space after "investigated" 
+
+Line 366/367: the spacing of "th" in $n^{{t}{h}}$ is a bit odd 
+
+Line 483/484: "loose" should be "lose" 
+
+
+* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * 
+
+
+Review #31B 
+===========================================================================
+
+Overall merit 
+------------- 
+A. Accept 
+
+Reviewer expertise 
+------------------ 
+Y. Knowledgeable 
+
+Paper summary 
+------------- 
+The paper investigates a tester for REs that generates positive and negative 
+examples. Generating negative examples has not been done according 
+to paper. The submission goes beyond REs in that they can deal with 
+"extended regular expressions that contain intersection and 
+complement beyond the standard regular operators". 
+
+The theory is buttressed by not one but 2 implementations (one in 
+Haskell and one in OCaml). During most of the review (see end for 
+the exception) I have not looked at the linked GitHub 
+repos, as that would deanonymise the authors. I trust that the 
+implementation is solid. 
+
+The paper feels solid too. Clearly the author(s) have thought about 
+this subject deeply. The deep understanding is also visible in the 
+clarity of the presentation (e.g. clarity of the research question). 
+
+The problem tackled is important, as REs are one of the most 
+widely used tools in a programmer's toolbox. I'm not a researcher in 
+REs and random testing myself, so I cannot comment on the novelty / 
+difficulty of the approach. I hope another review with more domain 
+expertise can comment on novelty. 
+
+The paper also has a thorough benchmarking section. Quite how reliable 
+those benchmarks are, I am unable to say, but that's because 
+benchmarking software performance in a reliable and meaningful way, is 
+an extremely hard (and in my opinion unsolved). 
+
+My main complaint is that a central idea of the paper is to make 
+QuickCheck to do the work of test-case generation. But the paper 
+does not say this explicitly anywhere and I would have almost 
+misread the paper because of this. I was looking for the punchline 
+about how the test-cases are generated in Ocaml, since I did not 
+expect that Ocaml comes with a suitable QuickCheck as well. 
+I only saw this when I looked at the Ocaml code for this. 
+
+Comments for author 
+------------------- 
+- Use of term "productive". It's not explained. E.g. on Page 1: 
+
+"Our algorithms produce lazy streams, which are guaranteed to 
+be productive. A user can gauge the string size or the number of 
+generated strings without risking partiality." 
+
+I'm also not sure what the last sentence in the quote means. 
+
+- Section 3.2: Paper gives a Haskell definition, but there are now 
+very general enumeration libraries, in particular [A]. I'm sure REs 
+as described in Section 3.2, are a special case of the approach in 
+[A]. Please clarify. In particular, it would be interesting to see a 
+benchmark comparing REs in the paper with [A]. 
+
+- Page 4, "By applying the usual spiel of representing": Interesting 
+sentence. As an outsider, I am not sure what the "usual spiel" 
+is. Maybe add a reference? 
+
+- Implementation in Haskell and OCaml: would it make sense to 
+implement both (strict and lazy) in Scala, which offers strict and 
+lazy in a unified way? Using just one language would also make 
+benchmarking (somewhat) easier. 
+
+- Page 10 "Languages are roughly ordered by size/density". I wonder 
+how you order by density. After all, density is an asymptotic 
+concept. 
+
+- Page 11 "We restrict generated regular expressions to star-heights 
+less than 3". Maybe discuss whether that affects the theory or 
+now. It seems to me an entirely pragmatic choice. And one that is 
+fine in practise -- one never needs large star heights in 
+applications, at least in my (limited) experience. 
+
+- Page 11 "we use a technique similar to the fast approximation for 
+reservoir sampling [...] This approach has proven satisfactory at 
+finding good testing samples in practice". I'm slightly 
+surprise. Does this not have a deep influence on the efficiency of 
+the test generation? Are you using an off-the-shelf 
+researvoir-sample and hook in your RE generators as black boxes, or 
+could the system be improved if both parts were integrated more 
+tightly? Note that there is quite a bit of literature on (a) 
+enumerating combinatorial structure, and (b) sampling them 
+efficiently, primarily coming from P Flajolet and his students, see 
+e.g. [B-G]. 
+
+- Page 12 "Their approach is complementary to test-data generators": 
+Why is it complementory? Apart from the fairness issue it seems to 
+be dealing with the same problem. 
+
+
+---------------------- References ---------------------- 
+
+[A] I. Kuraj, V. Kuncak, D. Jackson, Programming with Enumerable Sets 
+of Structures. 
+
+[B] P. Flajolet, P. Zimmerman, B. Van Cutsem, A Calculus for the 
+Random Generation of Combinatorial Structures. NB, this work is often 
+cited as A Calculus for the Random Generation of Labelled 
+Combinatorial Structures, even by the authors. 
+
+[C] P. Flajolet, A Calculus of Random Generation. 
+
+[D] P. Duchon, P. Flajolet, G. Louchard, G. Schaeffer, Boltzmann 
+Samplers for the Random Generation of Combinatorial Structures. 
+
+[E] O. Bodini, Y. Ponty, Multi-dimensional Boltzmann Sampling of 
+Languages. 
+
+[F] E. Fusy, Random generation of combinatorial structures using 
+Boltzmann samplers. 
+
+[G] P. Lescanne, Boltzmann samplers for random generation of lambda 
+terms. 
+
+
+* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * 
+
+
+Review #31C 
+===========================================================================
+
+Overall merit 
+------------- 
+B. Weak accept 
+
+Reviewer expertise 
+------------------ 
+Y. Knowledgeable 
+
+Paper summary 
+------------- 
+This paper implements an efficient generator for words matching a given extended regular expression, with the goal of 
+stress-testing regex matcher implementations. The generator aims to produce all the words in a given language, efficiently and 
+strictly lexicographically. It extends the classic straightforward McIlroy implementation with a number of algorithmic 
+improvements, such as a representation segmented by a word length and a careful control of language 
+finiteness/eagerness. The authors provide two implementations, in Haskell and Ocaml, with different choices and 
+trade-offs to enable more or less efficient enumeration. They then evaluate the performance on these choices on several 
+selected representative regexes. 
+
+Comments for author 
+------------------- 
+## Strengths 
++ Exceptionally clear and well-written paper 
++ Simple but effective extension of an existing algorithm with several efficient implementations 
++ A comparative study of performance of different implementation choices on carefully selected regexes 
++ The authors mention (but do not describe) practical applications on their enumerator: (a) a tester for a 
+standard-library regex parser, and (b) a test generator for students studying Haskell. 
+
+## Weaknesses & Comments 
+- The paper makes no study of the effectiveness of the approach for typical real-life regexes. It mentions real-life 
+regexes in the two applications above, but all the experiments are performed only on seven very simple (albeit carefully 
+selected as worst-case representative) regexes. A study of the generator's actual effectiveness as a practical 
+tester would warrant a higher acceptance score. As is stands, the experiments of the generator's effectiveness are, in 
+effect, ablation studies: they illustrate the impact of different choices in the implementation on the generator's 
+performance on textbook worst-class cases, but not on the generator's real-life usage. 
+Examples of interesting databases: 
+* General-purpose regexes in e.g. RegexLib 
+* Regexes for XSS/SQL vulnerability detection in firewall filters, e.g. Mod-Security, PHPIDS, Expose 
+* Regexes in real-life parsers, e.g. Chrome 
+- I did not appreciate the notion of the "power series" that was introduced and then never used in its capacity as a 
+power series (moreover, emphasized as distinct from the classical notion of formal power series). Simply presenting 
+the segment representation as a stratified representation of a language as a union of its length-n cross sections is 
+enough. 
+- In practice, a regex generator would not be used to enumerate all strings up to a certain bound, but as a source to 
+finitely _sample_ matching strings randomly, as the authors rightfully observe in lines 1142-1155. 
+However, their implementation based on reservoir sampling does not guarantee any probabilistic 
+coverage over the branches of the underlying regex. Ideally, a sampler would be either (a) uniform over branches in the regex, or (b) proportional [perhaps logarithmically] to the sizes of the respective language classes of the branches in the regex. I'm not an expert here, so unsure if such a sampler is possible, but if it is, it 
+would ideally also be composable and inductively defined. Tracking of exhausted lists for Lemma 5.1 would also have to 
+be adapted. 
+
+To clarify, I really like the paper, think it addresses an important problem with a good insight, well-targeted to GPCE, and should be accepted. I lower my score from A for B for the first weakness (incomplete evaluation), the other ones are rather comments/suggestions for the authors. 
+
+
+* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * 
+
+
+Review #31D 
+===========================================================================
+
+Overall merit 
+------------- 
+C. Weak reject 
+
+Reviewer expertise 
+------------------ 
+X. Expert 
+
+Paper summary 
+------------- 
+This paper describes how to generate both positive and negative examples of words that match extended regular expressions. The focus is on creating test cases that can be used to test regular expression engines. 
+
+Comments for author 
+------------------- 
+Overall the paper was quite clear. The mixture of mathematical definitions and implementations in Haskell and OCaml was fine for me but may not be for a reader who is not familiar with these languages. 
+
+The need for better test case generation for regular expression engines is well-motivated. The main concern I have is that having motivated this need, most of the paper is actually about a more general problem: generating words that are recognised or not recognised in a language specified by regular expressions. 
+
+These two problems are related but are not the same. The paper focuses mostly on coming up with words but not on their suitability as test cases. On the one hand, getting words that are in the language is a win since simpler brute force methods can't be expected to do so very well. But there is little discussion of evidence in the paper on the issue of whether these generated words actually are good test cases. Perhaps more problematically, words that aren't in the language are generated but it's not clear that their distribution is useful for negative testing. 
+
+The exception is in Section 8 where you explain using a method that skips elements in the generated words to pick the test cases with an aim to "exercise the implementation under test as much as possible". There is no definition of "as much as possible" and no real evaluation of this aspect, just a comment that it has "proven satisfactory" "in practice". The abstract says that the test cases are "more than adequate" which is pretty vague. Given that the main claim of your paper is that your generated words help to improve testing, I expected to see much more robust evaluation. 
+
+If the paper is accepted, please adjust the title, abstract and claimed contributions to better match the rest of the content. Since very little is discussed or evaluated in terms of test cases, I think it would be appropriate to only have testing as a general motivation, but not a central contribution of the work. 
+
+Putting all of that aside, I can see the benefits of your generation approach compared to previous ones, particularly concerning productivity. It seems to be an improvement over previous approaches and the implementations in a lazy and a strict language shows wide applicability. 
+
+Detailed comments: 
+
+170: "reasonable efficiency", how do you define "reasonable"? 
+
+463-4: "loose" -> "lose" 
+
+Some of the related work (e.g., para at 1226) lists some other work but doesn't do any comparison with the current paper. 
