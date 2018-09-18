@@ -51,8 +51,9 @@ of the complement operator enables the algorithms to generate strings
 that certainly do not match a given (extended) regular expression.
 
 Our algorithms produce lazy streams, which are guaranteed to be
-productive. A user can gauge the string size or the
-number of generated strings without risking partiality.
+productive (i.e., their next element is computed in finite time). A
+user can limit the string length or the number of generated strings
+without risking partiality.
 
 Source code for implementations in Haskell and in OCaml is available
 on GitHub. Examples can be run in a Web App.\footnote{%
