@@ -54,11 +54,14 @@ Our algorithms produce lazy streams, which are guaranteed to be
 productive (i.e., their next element is computed in finite time). A
 user can limit the string length or the number of generated strings
 without risking partiality.
-
-Source code for implementations in Haskell and in OCaml is available
-on GitHub. Examples can be run in a Web App.\footnote{%
-  The Web App is available at
-  \url{https://regex-generate.github.io/regenerate/}.}.  Although
+%
+We provide a Web App\footnote{%
+  \url{https://regex-generate.github.io/regenerate/}} 
+along with Haskell\footnote{%
+  \url{https://github.com/peterthiemann/re-generate}}
+and OCaml\footnote{%
+  \url{https://github.com/regex-generate/regenerate}
+} implementations. Although
 not tuned for efficiency they generate languages at a rate
 between $1.3\cdot10^3$ and $1.4\cdot10^6$ strings per second, for
 Haskell, and up to $3.6\cdot10^6$ strings per second, for OCaml. The

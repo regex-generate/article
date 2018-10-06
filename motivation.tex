@@ -66,9 +66,9 @@ Hence, there are two problems.
 Wouldn't it be nice to have a systematic means
 of generating words \textbf{inside} of $L$ and \textbf{outside} of
 $L$? Such a generation algorithm would eliminate the oracle
-and it would give us control over the number of test inputs
+and would give us control over the number of test inputs
 in the language and in the language's complement.
-
+%
 To construct such an algorithm we tackle the more general question of
 generating the language of a regular expression extended with
 operators for intersection ($\Rintersect{}{}$) and complement
@@ -197,7 +197,6 @@ The Haskell code below defines a generator as a compositional function in terms 
 the regular operations. 
 \begin{lstlisting}
 import qualified Data.Text as T
-
 type Alphabet = [Char] -- ascendingly sorted
 type Lang = [T.Text]   -- lazy stream of words
 
@@ -279,10 +278,9 @@ language enables the efficient implementation of
 \lstinline{intersect}, \lstinline{difference}, and hence the
 \lstinline{complement} operations!
 
-\begin{figure}[tp]
+\begin{figure}[tbp]
 \begin{lstlisting}
 -- continuing module Examples.McIlroy
-
 intersect :: Lang -> Lang -> Lang
 intersect xs@(x:xs') ys@(y:ys') =
   case llocompare x y of
@@ -296,8 +294,7 @@ intersect xs ys = []
 
 complement :: Alphabet -> Lang -> Lang
 complement sigma lx = difference lsigmastar lx
-  where
-    lsigmastar = star (map T.singleton sigma)
+ where lsigmastar = star (map T.singleton sigma)
 \end{lstlisting}
 \vspace{-\baselineskip}
   \caption{Additional operations in McIlroy's framework}
@@ -342,7 +339,6 @@ sequence of all segments $(L_n)_{n\ge0}$.
 % \begin{gather*}
 %   L = \Sigma_{n=0}^\infty L_nx^n\text.
 % \end{gather*}
-
 The language operations can be expressed on this representation by
 standard operations on sequences.
 \begin{align}
@@ -382,7 +378,7 @@ intersect = zipWith McIlroy.intersect
 difference = zipWith McIlroy.difference
 \end{lstlisting}
 
-\begin{figure}[tp]
+\begin{figure}[tbp]
 \begin{lstlisting}
 concatenate :: SegLang -> SegLang -> SegLang
 concatenate lx ly = collect 0

@@ -47,7 +47,6 @@ end
 module type SEGMENT = sig
   type elt (* Elements *)
   type t (* Segments *)
-
   val empty: t
   val is_empty: t -> bool
   val singleton: elt -> t
@@ -73,8 +72,8 @@ end
     
 \begin{lstlisting}
 module Regenerate
-    (Word : WORD)
-    (Segment : Segments.S with type elt = Word.t)
+  (Word : WORD)
+  (Segment : Segments.S with type elt = Word.t)
 : sig
   type lang
   val gen : Segment.t -> Word.char regex -> lang
@@ -130,7 +129,6 @@ export elements to and from a segment.
 The core algorithm follows the Haskell version. The power series
 is implemented using a thunk list in the style of \citet{DBLP:conf/cpp/Pottier17}
 with some special-purpose additions:
-
 \begin{lstlisting}
 type node =
   | Nothing
@@ -138,7 +136,7 @@ type node =
   | Cons of Segment.t * lang
 and lang = unit -> node
 \end{lstlisting}
-
+%
 An enumeration is represented by a function which takes a unit argument and returns
 a node. A node, in turn, is either \code{Nothing} or a \code{Cons} of an
 element and the tail of the sequence.
@@ -151,7 +149,7 @@ element and the tail of the sequence.
 %   on the topic.}
 The additional constructor \code{Everything} allow to manipulate
 full languages symbolically, as in \cref{sec:more-finite-repr}.
-
+%
 % The rest of the implementation is similar to the \haskell one.
 As an example, the implementation of language union is shown below.
 The trailing unit argument \code{()} drive the evaluation of the
@@ -162,7 +160,7 @@ let rec union s1 s2 () = match s1(), s2() with
   | Nothing, x | x, Nothing -> x
   | Everything, _ | _, Everything -> Everything
   | Cons (x1, next1), Cons (x2, next2) -> 
-    Cons (Segment.union x1 x2, union next1 next2)
+    Cons(Segment.union x1 x2, union next1 next2)
 \end{lstlisting}
 
 % The concatenation of languages demonstrates how the main algorithm can
@@ -368,9 +366,9 @@ to its child tries.
 The only novel operation is \code{append} which computes the product of two sets.
 It can be implemented in a single traversal which grafts the
 appended trie \code{t0} at each leaf of \code{t}, without copies.
-
+%
 \begin{lstlisting}
-type trie = Empty | Leaf | Node of trie CharMap.t
+type trie= Empty | Leaf | Node of trie CharMap.t
 let rec append t t0 = match t with
   | Empty -> Empty | Leaf -> t0
   | Node map -> 

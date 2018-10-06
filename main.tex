@@ -1,8 +1,7 @@
 \newif\ifsubmit
 \submitfalse
 %% 12 pp + bib
-\documentclass[sigplan,authorversion]{acmart}%
-\settopmatter{printfolios=true,printccs=false,printacmref=false}
+\documentclass[sigplan,screen]{acmart}%
 
 % Encoding and lang
 \usepackage[T1]{fontenc}
@@ -47,6 +46,8 @@
 \usepackage{mathpartir}
 
 \usepackage{textcomp}
+
+\usepackage{balance}
 
 \usepackage[noabbrev,nameinlink,capitalize]{cleveref}
 \crefname{section}{\S}{\S}
@@ -158,6 +159,7 @@
 % \end{acks}
 
 \clearpage
+\balance
 \bibliography{biblio}
 
 % \appendix
