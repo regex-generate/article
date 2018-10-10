@@ -1,11 +1,11 @@
 \section{Related Work}
 \label{sec:related-work}
 
-\subsubsection*{Regular Language Generation}
+\paragraph{Regular Language Generation}
 
 \citet{DBLP:journals/actaC/Makinen97} describes a method to enumerate
 the words of a regular language $L$, given by a deterministic finite
-automaton, in length-lexicographic ordering. To generate words up to
+automaton, in length lexicographic ordering. To generate words up to
 length $n$, this method precomputes in time $O(n)$, for each $i\le n$,
 the lexicographically minimal and maximal word of length $i$ in $L$.
 %
@@ -80,7 +80,7 @@ supported. Moreover, the approach is not compositional.
 
 
 
-\subsubsection*{Language Generation}
+\paragraph{Language Generation}
 Some authors discuss the generation of test sentences from grammars for
 exercising compilers
 (e.g., \cite{DBLP:conf/cisse/ParachaF08,DBLP:conf/compsac/ZhengW09}
@@ -102,9 +102,9 @@ languages effectively.
 Other work \cite{DBLP:conf/compsac/LiJLG04} also targets
 testing the grammar, rather than the parser.
 
-\subsubsection*{Test Data Generation}
+\paragraph{Test Data Generation}
 
-Since the introduction of
+Since the introduction of the library
 QuickCheck~\cite{DBLP:conf/icfp/ClaessenH00}, property testing and
 test-data generation has been used successfully in a wide variety of
 contexts.  In property testing, input data for the function to test is
