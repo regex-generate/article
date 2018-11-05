@@ -38,7 +38,7 @@ to define generators for test inputs.
 We eliminate the oracle by providing generators for positive and
 negative example words. Generators for positive examples, which match
 a given regular expression, have been
-investigated\cite{DBLP:journals/jcss/GrozM17,
+investigated \cite{DBLP:journals/jcss/GrozM17,
   DBLP:journals/tcs/AckermanS09, DBLP:journals/jfp/McIlroy04,
   DBLP:journals/actaC/Makinen97}, although mainly in a theoretical
 context. Generating negative examples, which do \textbf{not} match an
@@ -51,14 +51,14 @@ of the complement operator enables the algorithms to generate strings
 that certainly do not match a given (extended) regular expression.
 
 Our algorithms produce lazy streams, which are guaranteed to be
-productive. A user can gauge the string size or the
-number of generated strings without risking partiality.
+productive (i.e., their next element is computed in finite time). A
+user can limit the string length or the number of generated strings
+without risking partiality.
 
 Source code for implementations in Haskell and in OCaml is available
 on GitHub. Examples can be run in a Web App.\footnote{%
   The Web App is available at
-  \url{https://regex-generate.github.io/regenerate/}.  Links in the App may
-  reveal author identity, just using the App does not.  }.  Although
+  \url{https://regex-generate.github.io/regenerate/}.}.  Although
 not tuned for efficiency they generate languages at a rate
 between $1.3\cdot10^3$ and $1.4\cdot10^6$ strings per second, for
 Haskell, and up to $3.6\cdot10^6$ strings per second, for OCaml. The

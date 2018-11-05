@@ -170,7 +170,7 @@ but expressions can be more concise.
 \subsection{McIlroy's Approach}
 \label{sec:naive-approach}
 
-\citet{DBLP:journals/jfp/McIlroy99} enumerates the words of a regular language as a
+\citet{DBLP:journals/jfp/McIlroy04} enumerates the words of a regular language as a
 strictly increasingly ordered infinite stream using Haskell. A key insight is to use the
 length-lexicographic ordering on words, which is defined by $u \lleq v$ if $|u|<|v|$ or
 $|u|=|v|$ and $u\le v$ in the usual lexicographic ordering. Here is a definition in Haskell.\footnote{The type
@@ -338,17 +338,13 @@ number. The \textbf{$n^{th}$ cross section of $L$} or
 \textbf{$n^{th}$ segment of $L$} is $L_n := L \cap \Sigma^n$, the set of
 words of length $n$ in $L$. As $L = \bigcup_{n\ge0} L_n$ we
 define the \textbf{segment representation of $L$} by the
-sequence of all segments, which we can write formally as a
-power series\footnote{These power series are different
-  from formal power series used in formal language theory
-  \cite{DBLP:books/daglib/0067812,DBLP:books/sp/KuichS86}.}
-\begin{gather*}
-  L = \Sigma_{n=0}^\infty L_nx^n\text.
-\end{gather*}
+sequence of all segments $(L_n)_{n\ge0}$.
+% \begin{gather*}
+%   L = \Sigma_{n=0}^\infty L_nx^n\text.
+% \end{gather*}
 
 The language operations can be expressed on this representation by
-standard operations on power series over semirings
-$(\Power(\Sigma^*),\cup,\cdot)$ and $(\Power(\Sigma^*), \cup, \cap)$.
+standard operations on sequences.
 \begin{align}
   \label{eq:3}
   &\text{Sum:}
@@ -361,9 +357,7 @@ $(\Power(\Sigma^*),\cup,\cdot)$ and $(\Power(\Sigma^*), \cup, \cap)$.
   & (U \cdot V)_n &= \bigcup_{i=0}^n U_i\cdot V_{n-i}
 \end{align}
 
-By applying
-the usual spiel of representing a power series by its sequence of
-coefficients, all operations become executable.
+In a language that supports streams, all operations become executable.
 %
 As the alphabet $\Sigma$ is finite, each segment $L_n$ is a finite set. Hence, the sum and
 Hadamard product yield efficient definitions of language union and intersection. Due to
@@ -423,7 +417,7 @@ list \lstinline{lx}.
 \paragraph{Kleene Closure}
 It is well known that $U^* = (U\setminus\{\varepsilon\})^*$. 
 Hence, a simple calculation yields an
-effective algorithm for computing the coefficients of the power series for $U^*$. 
+effective algorithm for computing the sequence of cross sections for $U^*$. 
 \begin{align}
   \label{eq:2}
   &%\text{Star:}
@@ -431,8 +425,8 @@ effective algorithm for computing the coefficients of the power series for $U^*$
   & (U^*)_n &= (U \cdot U^*)_n = \bigcup_{i=1}^n U_i\cdot (U^*)_{n-i}
 \end{align}
 The key observation is that Equation~\eqref{eq:2} is a proper
-inductive definition of the power series for $U^*$. It never touches $U_0$ and the union
-only touches the coefficients $(U^*)_{n-1}$ down to $(U^*)_0$. Hence, $(U^*)_n$ is well
+inductive definition of the sequence for $U^*$. It never touches $U_0$ and the union
+only touches the elements $(U^*)_{n-1}$ down to $(U^*)_0$. Hence, $(U^*)_n$ is well
 defined as it only relies on $U$ and previously computed indexes!
 
 \begin{figure}[tp]
@@ -484,7 +478,7 @@ What have we gained?
 
 Productivity: We can generate productive segment
 representations from all extended regular expressions. The implementation of each
-operation is guided by corresponding operations on power series.
+operation is guided by corresponding operations on streams.
 
 Easy Gauging: To restrict the generated segmented output, say \code{segs}, to words of
 length less than a given 
@@ -494,7 +488,7 @@ for the LLO representation where
 \lstinline{takeWhile (\w -> T.length w <  n) llo} may yield a partial list.
 
 
-There is a catch: As the output is always an infinite list, we loose the
+There is a catch: As the output is always an infinite list, we lose the
 information that a language is finite. The advantange of this choice is simplicity: index
 accesses into the languages \code{lx} and \code{ly} are always defined. 
 However, the list index operation used in the \lstinline{combine} function requires time
