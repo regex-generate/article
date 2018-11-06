@@ -1,0 +1,666 @@
+%% 30 minutes
+
+\documentclass[pdftex,aspectratio=169]{beamer}
+%\setbeameroption{show notes}
+\usepackage[T1]{fontenc}
+\usepackage[utf8x]{inputenc}
+\usepackage{theme/beamerthemeALU}
+
+\usepackage{amsmath}
+%\usepackage{amssymb}
+%\usepackage{mathtools}
+\usepackage{cmll} % \with
+
+\usepackage{stmaryrd}
+\usepackage{listings}
+\usepackage{mathpartir}
+\usepackage{pgf}
+\usepackage{tikz}
+\usetikzlibrary{arrows,automata}
+
+\setbeamertemplate{navigation symbols}{}
+
+\input{macros}
+
+\begin{document}
+\everymath{\displaystyle}
+
+% to enable title graphic enable this line, make sure the height is not too big
+\titlegraphic{\includegraphics[height=6em]{theme/Uni_Logo-Grundversion_E1_A4_CMYK}}
+
+\title[Regenerate]{{\Huge\bf Regenerate:} \\
+  A Language Generator for Extended Regular Expressions}
+\author[Thiemann]%
+{Gabriel Radanne and \underline{Peter Thiemann}}
+\institute[IIF]{University of Freiburg, Germany\\[4pt]
+\texttt{\{radanne,thiemann\}@informatik.uni-freiburg.de}
+}
+%\date[\today]{\today}
+\date[2018-11-06]{06 November 2018}
+
+% begin titlepage
+% "`normal"' front page template:
+% \setbeamertemplate{title page}[default][rounded=true]
+\makeatletter
+\begin{frame}[plain,label=fp]
+    \advance\textwidth by 3.2em\relax
+    \begin{minipage}{\textwidth}\par%
+      \maketitle
+    \end{minipage}
+    \hspace*{2.5em}%
+\end{frame}
+\makeatother 
+
+\section{Prelude}
+\AtBeginSection[]
+{
+ \begin{frame}<beamer>
+ \frametitle{Plan}
+ \tableofcontents[currentsection]
+ \end{frame}
+}
+
+\begin{frame}
+    \begin{center}
+      \includegraphics[scale=0.8]{regular-expressions-regex-everywhere}
+    \end{center}
+\end{frame}
+
+\begin{frame}
+  %\frametitle{Regular expressions seem to be kind of important \dots}
+  \begin{center}
+    \includegraphics[scale=0.25]{book-introducing-regular-expressions}
+    \includegraphics[scale=0.25]{book-regular-expression-cookbook}
+    \includegraphics[scale=0.25]{book-mastering-regular-expressions}
+  \end{center}
+\end{frame}
+
+% \begin{frame}
+%   \frametitle{Uses abound}
+%   \begin{block}{Wikipedia says}
+%     Regexes are useful in a wide variety of text processing tasks, and
+%     more generally string processing, where the data need not be
+%     textual. Common applications include data validation, data
+%     scraping (especially web scraping), data wrangling, simple
+%     parsing, the production of syntax highlighting systems, and many
+%     other tasks.
+
+%     \url{https://en.wikipedia.org/wiki/Regular_expression\#Uses}
+%   \end{block}
+% \end{frame}
+
+% \begin{frame}
+%   \frametitle{Lots of Implementations}
+%   \begin{itemize}
+%   \item Many libraries
+%   \item Many programming languages
+%   \item Still new implementations and algorithms
+%   \end{itemize}
+% \end{frame}
+
+\begin{frame}
+  \frametitle{Motivation}
+  \begin{block}<+->{Question}
+    Does this regex matcher implementation work correctly?
+  \end{block}
+  \begin{exampleblock}<+->{Answer}
+    Test it; create test cases.
+  \end{exampleblock}
+  \begin{block}<+->{Question}
+    But the language of a regex can be infinite! How can we increase confidence?
+  \end{block}
+  \begin{exampleblock}<+->{Answer}
+    Use random testing and employ an existing implementation as an oracle!
+  \end{exampleblock}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Motivation (cont'd)}
+  \begin{block}<+->{Question}
+    But how do I generate random test inputs fairly?
+  \end{block}
+  \begin{exampleblock}<+->{Answer}
+    Huh?
+  \end{exampleblock}
+  \begin{block}<+->{Question}
+    Consider the alphabet $\{a,b\}$ and the expression $a^*$. What is
+    the probability that a randomly generated string is in $L (a^*)$?
+  \end{block}
+  \begin{exampleblock}<+->{Answer}
+    Let me think\dots
+  \end{exampleblock}
+\end{frame}
+\begin{frame}
+  \frametitle{Motivation (cont'd)}
+  \begin{exampleblock}<+->{Answer: Probability that a random string is in $L(a^*)$}
+    \begin{displaymath}
+      \lim_{n\to\infty} P (w \in L(a^*) \mid w \in \{a,b\}^{\le n})
+    \end{displaymath}
+  \end{exampleblock}
+  \begin{exampleblock}<+->{Answer}
+    \vspace{-\baselineskip}
+    \begin{align*}
+      \dots&= \lim_{n\to\infty} \frac{n+1}{\sum_{i=0}^n 2^i } &
+      &\only<+->{= \lim_{n\to\infty} \frac{n+1}{ 2^{n+1} -1 }}  &
+      &\only<+->{=0}
+    \end{align*}
+  \end{exampleblock}
+  \begin{block}<+->{Insight}
+    A random string will \textbf{almost never} be in $L(a^*)$!
+  \end{block}
+\end{frame}
+\begin{frame}
+  \frametitle{Our Work}
+  \begin{block}<+->{Given a regular expression $r$ generate}
+    \begin{itemize}
+    \item all strings that are \textbf{definitely in} $L(r)$ and
+    \item all strings that are \textbf{definitely not in} $L(r)$
+    \end{itemize}
+  \end{block}
+  \begin{block}<+->{Advantages}
+    \begin{itemize}
+    \item Positive and negative examples guaranteed 
+    \item No oracle needed
+    \item Exhaustive testing for (many) finite languages
+    \end{itemize}
+  \end{block}
+\end{frame}
+\begin{frame}
+  \frametitle{What we actually do}
+  \begin{Huge}
+    \begin{center}
+      \bf
+      Language Generators for Extended Regular Expressions
+    \end{center}
+  \end{Huge}
+\end{frame}
+\begin{frame}
+  \frametitle{Extended Regular Expressions}
+  \vspace{-\baselineskip}
+  \footnotesize
+  \begin{align*}
+    r, s & &\Lang{\_}=\quad &  &
+                             \makebox[1em][l]{\code{data GRE sig}}\\
+         & ::= \Rnull & \ltext{empty}
+                        & \emptyset
+                           &&\code{= Zero}\\
+         & \mid \Rempty & \ltext{empty word}
+                        & \{ \varepsilon \}
+                           && \code{| One}\\
+         & \mid (a \in \Sigma) & \ltext{singleton}
+                        &  \{ a \}
+                           && \code{| Atom sig} \\
+         & \mid \Runion rs & \ltext{alternative}
+                        &  \Lang{r} \cup \Lang{s}
+                           && \code{| Alt (GRE sig) (GRE sig)}\\
+         & \mid \Rconcat rs & \ltext{concat}
+                        &  \Lang r \cdot \Lang s
+                           && \code{| Conc (GRE sig) (GRE sig)}\\
+         & \mid \Rstar r & \ltext{closure}
+                        & \Lang r^* 
+                           && \code{| Star (GRE sig)}\\
+         & \mid \Rintersect rs & \ltext{intersection}
+                        & \Lang r \cap \Lang s
+                           && \code{| Isect (GRE sig) (GRE sig)}\\
+         & \mid \Rcomplement r & \ltext{complement}
+                        & \Sigma^* \setminus \Lang r
+                           && \code{| Compl (GRE sig)}
+  \end{align*}
+\end{frame} 
+\begin{frame}[fragile]
+  \frametitle{Requirements}
+  \vspace{-\baselineskip}
+  \begin{block}{Specification}
+\begin{lstlisting}[numbers=none]
+import Data.Text as T
+
+type Alphabet = [Char]          -- finite list
+type Lang = [T.Text]            -- stream
+
+generate :: Alphabet -> GRE Char -> Lang
+\end{lstlisting}
+  \end{block}
+  \begin{itemize}
+  \item No repetitions in output language.
+  \item Output must not be partial / definition should be productive.
+  \item Throttling output with respect to word length.
+  \item Compositional generation.
+  \end{itemize}
+\end{frame}
+\begin{frame}[fragile]
+  \frametitle{Compositional Spec}
+\begin{lstlisting}[numbers=none]
+generate :: Alphabet -> GRE Char -> Lang
+generate sigma r = gen r
+  where
+    gen Zero        = zero
+    gen One         = one
+    gen (Atom t)    = atom t
+    gen (Alt r s)   = alt (gen r) (gen s)
+    gen (Conc r s)  = conc (gen r) (gen s)
+    gen (Star r)    = star (gen r)
+    gen (Inter r s) = isect (gen r) (gen s)
+    gen (Compl r)   = compl sigma (gen r)
+\end{lstlisting}
+\end{frame}
+
+% \begin{frame}[fragile]
+%   \frametitle{Naive Implementation}
+% \vspace{-2\baselineskip}
+% \begin{lstlisting}[numbers=none]
+% alt :: Lang -> Lang -> Lang
+% alt lx ly = lx ++ ly
+
+% conc :: Lang -> Lang -> Lang
+% conc lx ly =
+%   [T.append wx wy | wx <- lx, wy <- ly ]
+
+% isect :: Lang -> Lang -> Lang
+% isect lx ly = [wx | wx <- lx, wx `elem` ly ]
+
+% star :: Lang -> Lang
+% star lx = concat lxi
+%   where
+%     lxi = [T.empty] : map (conc lx) lxi
+
+% compl :: Alphabet -> Lang -> Lang
+% compl sigma lx =
+%   undefined
+% \end{lstlisting}
+% \end{frame}
+
+% \begin{frame}
+%   \frametitle{Lots of Problems}
+%   \begin{description}
+%   \item[duplicates] created by \code{alt}, \code{conc}, and \code{star}.
+
+%     Could be addressed by \code{List.union} and \code{List.nub}.
+%   \item[unfairness] (alt) If \texttt{lx} is infinite, then no words
+%     from \texttt{ly} will ever be produced.
+%     (conc) If \texttt{ly} is infinite, then only one word
+%     from \texttt{lx} will ever be considered.
+%   \item[partiality] Intersection may not produce a next element if \texttt{ly} is infinite.
+%   \end{description}
+%   \begin{block}<2->{Could be addressed \dots} by restricting to finite
+%     (subset of) languages.
+%     \begin{itemize}
+%     \item Unsatisfactory.
+%     \item 
+%       Quadratic behavior of \code{List.union} and \code{List.nub}.
+%   \end{itemize}
+%   \end{block}
+% \end{frame}
+
+% \begin{frame}
+%   \frametitle{Questions}
+%   \LARGE
+%   \begin{itemize}
+%   \item Can we do better?
+%   \item Can we support infinite languages?
+%   \item Can we avoid quadratic behavior?
+%   \end{itemize}
+%   \onslide<2->{
+%     \Huge
+%     \begin{center}
+%       \includegraphics[scale=0.25]{YES_JUST_YES}
+%     \end{center}
+%   }
+% \end{frame}
+
+\section{Ordered Enumeration}
+\begin{frame}[fragile]
+  \frametitle{Ordered Enumeration}
+  \vspace{-1.5\baselineskip}
+  \begin{block}<+->{Approach}
+    \begin{itemize}
+    \item Generate words in strictly ascending order
+    \item Length-lexicographic order to guarantee progress
+    \item Cf.\ M. Douglas McIlroy:
+      Enumerating the strings of regular languages. J. Funct. Program. 14(5): 503-518 (2004)
+    \end{itemize}
+  \end{block}
+  \begin{block}<+->{Why Length-Lexicographic Order}
+    \begin{itemize}
+    % \item Corresponds to a standard enumeration of $\Sigma^*$
+    \item If $v<_{llo}w$, then there are only finitely many words between $v$ and $w$.
+    \item Each word has an immediate successor in llo.
+    \item Compare lexicographically: infinitely many words between $a$ and $b$!
+    \end{itemize}
+% \begin{lstlisting}[numbers=none]
+% llocompare :: T.Text -> T.Text -> Ordering
+% llocompare u v =
+%   case compare (T.length u) (T.length v) of
+%     EQ -> compare u v
+%     LT -> LT
+%     GT -> GT
+% \end{lstlisting}
+  \end{block}
+\end{frame}
+\begin{frame}[fragile,fragile]
+  \frametitle{Alternative by Merging (McIlroy)}
+\begin{lstlisting}[numbers=none]
+alt :: Lang -> Lang -> Lang
+alt xs@(x:xt) ys@(y:yt) =
+  case llocompare x y of
+    EQ -> x : alt xt yt
+    LT -> x : alt xt ys
+    GT -> y : alt xs yt
+alt xs ys = xs ++ ys
+\end{lstlisting}
+  \begin{itemize}
+  \item Productive, next element produced in O(1) time
+  \item \textbf{Our Observation:}
+    \begin{itemize}
+    \item intersection and difference are analogous
+    \item but \textbf{not} productive
+    \end{itemize}
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Concatenation (McIlroy)}
+\begin{lstlisting}[numbers=none]
+conc :: Lang -> Lang -> Lang
+conc [] ly = []
+conc lx [] = []
+conc (x:xt) ly@(y:yt) =
+  x <> y : alt (conc [x] yt) (conc xt ly)
+\end{lstlisting}
+  \begin{itemize}
+  \item Generic series multiplication
+  \item Productive
+  \item Inefficient: one \lstinline{alt} for each output word
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile,fragile]
+  \frametitle{Closure (McIlroy)}
+\begin{lstlisting}[numbers=none]
+star :: Lang -> Lang
+star [] = [T.empty]
+star lx@(x:xt)
+  | x == T.empty =
+    star xt
+  | otherwise =
+    T.empty : conc lx (star lx)
+\end{lstlisting}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Complement (missed by McIlroy)}
+\begin{lstlisting}[numbers=none]
+compl :: Alphabet -> Lang -> Lang
+compl sigma lx = difference lsigmastar lx
+  where
+    lsigmastar = star (map T.singleton sigma)
+\end{lstlisting}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{What did we achieve so far?}
+  \begin{itemize}
+  \item<+-> definitions for all operations needed in extended regular expressions
+  \item<+-> productive definitions for \code{alt}, \code{conc}, \code{star}
+  \end{itemize}
+  \begin{block}<+->{But}
+    \begin{itemize}
+    \item partial results for some expressions involving complement, intersection
+    \item cannot throttle with a length bound
+    \end{itemize}
+  \end{block}
+  \begin{exampleblock}<+->{Partial, nonterminating example}
+\begin{lstlisting}[numbers=none]
+compl "ab" (star (map T.singleton "ab"))
+\end{lstlisting}
+  \end{exampleblock}
+\end{frame}
+
+\section{Cross-section Representation}
+
+
+\begin{frame}
+  \frametitle{Cross-section Representation for Languages}
+  \vspace{-\baselineskip}
+  \begin{block}<+->{Represent Language by Series}
+    For all $n$, let
+    $L_n = L \cap \Sigma^n$ be the $n$th \textbf{cross section} of $L$.
+    \begin{gather*}
+      L = \sum_{n=0}^\infty L_nx^n
+    \end{gather*}
+  \end{block}
+  \begin{block}<+->{Observations}
+    \begin{itemize}
+    \item Each $L_n$ is a \textbf{finite language}.
+    \item Choose an efficient representation for the $L_n$.
+    \item \alert{Represent $L$ by a stream of finite languages $[L_0, L_1, L_2, \dots ]$!}
+    \end{itemize}
+  \end{block}
+\end{frame}
+\begin{frame}
+  \frametitle{Operations on Series}
+  \begin{alertblock}<+->{Insight}
+    Operations on languages boil down to operations on series (coefficients)
+  \end{alertblock}
+\begin{block}<+->{Operations}
+  \vspace{-\baselineskip}
+    \begin{align*}
+      L \cup M & = \sum_{n=0}^\infty (L_n \cup M_n)x^n & \text{alt}\\
+      % L \cap M & = \sum_{n=0}^\infty (L_n \cap M_n)x^n & \text{Hadamard product} \\
+      L \cdot M &= \sum_{n=0}^\infty (\bigcup_{i=0}^n L_i \cdot M_{n-i})x^n & \text{product}
+    \end{align*}
+  \end{block}
+\end{frame}
+% \begin{frame}
+%   \frametitle{More Operations}
+%   \vspace{-\baselineskip}
+%   \begin{block}{Star Operation}
+%     \vspace{-\baselineskip}
+%     \begin{align*}
+%       L^* &= \sum_{n=0}^\infty R_n x^n
+%       \intertext{where}
+%       R_0 &= \{ \varepsilon \} \\
+%       R_{i+1} &= L_{i+1} \cup L_i \cdot R_1 \cup \dots \cup L_1 \cdot R_i\\
+%       &= \bigcup_{j=0}^i L_{j+1} \cdot R_{i-j}
+%     \end{align*}
+%     a proper inductive definition!
+%   \end{block}
+% \end{frame}
+% \begin{frame}
+%   \frametitle{Data Structures}
+%   \begin{block}<+->{\dots{} for $L_n$ (segments)}
+%     \begin{itemize}
+%     \item \code{[T.Text]} with standard ordering and operations defined by merge
+%     \item \code{Data.Set.Set T.Text} with its operations
+%     \item other choices, e.g., tries
+%     \end{itemize}
+%   \end{block}
+%   \begin{block}<+->{\dots{} for implementing the operations}
+%     \begin{itemize}
+%     \item input and output are lazy streams of segments $[L_0, L_1, L_2, \dots]$
+%     \end{itemize}
+%   \end{block}
+% \end{frame}
+\begin{frame}[fragile]
+  \frametitle{Incremental Computation}
+  \framesubtitle{Product}
+  \vspace{-2.5\baselineskip}
+  \begin{align*}
+    (L \cdot M)_n & = \bigcup_{i=0}^n L_i \cdot M_{n-i} && \text{a \textbf{convolution}}
+    \\
+    (L \cdot M)_0 & = L_0 \cdot M_0 && = \bigcup \text{\lstinline{zipwith}}~\cdot~[L_0, L_1, \dots]~[M_0]
+    \\
+    (L \cdot M)_1 & = L_0 \cdot M_1 \cup L_1 \cdot M_0
+                     && = \bigcup \text{\lstinline{zipwith}}~\cdot~[L_0, L_1, \dots]~[M_1, M_0]
+    \\
+    (L \cdot M)_2 & = L_0 \cdot M_2 \cup L_1 \cdot M_1 \cup L_2 \cdot M_0
+                                                        && = \bigcup \text{\lstinline{zipwith}}~\cdot~[L_0, L_1, \dots]~[M_2, M_1, M_0]
+    \\
+                  &\vdots
+    \\
+    (L \cdot M)_n & = L_0 \cdot M_n \cup \dots \cup L_n \cdot M_0
+                                                        && = \bigcup \text{\lstinline{zipwith}}~\cdot~[L_0, L_1, \dots]~[M_n,\dots, M_1, M_0]
+  \end{align*}
+\end{frame}
+\begin{frame}[fragile]
+  \frametitle{Incremental Computation}
+  \framesubtitle{Product}
+  \vspace{-2.5\baselineskip}
+  % \begin{align*}
+  %    & = \bigcup_{i=0}^n L_i \cdot M_{n-i} & \text{a \textbf{convolution}}
+  % \end{align*}
+  \begin{align*}
+    & \text{to compute} & (L \cdot M)_n&\text{ from }L_i\text{ and }M_j \\
+    & \text{given} & \code{lx} &= [L_0, L_1, L_2, \dots ]\\
+     & \text{compute incrementally} &
+    \code{mxrev} &= [M_n, M_{n-1}, \dots , M_0]
+  \end{align*}
+  \begin{block}<2->{Implementation}
+\begin{lstlisting}[numbers=none]
+conc lx mx = collect mx []
+  where -- hidden lemma
+    collect (mxhd:mx') mxrev =
+      let mxrev' = mxhd:mxrev in
+        foldr S.union S.empty 
+        (zipWith (liftA2 (<>)) lx mxrev') :
+        collect mx' mxrev'
+\end{lstlisting}
+  \end{block}
+\end{frame}
+% \begin{frame}[fragile]
+%   \frametitle{Incremental Computation}
+%   \framesubtitle{Closure}
+%   \vspace{-2\baselineskip}
+%   \begin{align*}
+%     (L^*)_0 & = \{\varepsilon\} \\
+%     (L^*)_{n+1} & = \bigcup_{i=0}^n L_{i+1} \cdot (L^*)_{n-i}
+%                   &&= \bigcup_{i=0}^n L_{n+1-i} \cdot (L^*)_i
+%   \end{align*}
+%   \begin{block}<2->{Implementation}
+% \begin{lstlisting}[numbers=none]
+% star lx = slx
+%   where
+%     slx = S.singleton (T.empty) :
+%           collect (tail lx) []
+%     collect (lxh:lx') lxrev =
+%       let lxrev' = lxh:lxrev in
+%         foldr S.union S.empty (zipWith T.append lxrev' slx) :
+%         collect lx' lxrev'
+% \end{lstlisting}
+%   \end{block}
+% \end{frame}
+\begin{frame}
+  \frametitle{Improvements}
+  \begin{block}{Language representation}
+  \begin{itemize}
+  \item Finite list of segments if all further segments are empty
+  \item Finite list of segments if all further segments are full
+  \item[$\Rightarrow$] Recognize (many) finite and cofinite languages
+  \item Can be maintained through all operations except Kleene closure
+  \end{itemize}
+\end{block}
+\end{frame}
+\section{Implementation}
+\begin{frame}
+  \frametitle{Implementation}
+  \begin{itemize}
+  \item Implementations in Haskell and OCaml
+  \item Web demo \url{https://regex-generate.github.io/regenerate/}
+  \end{itemize}
+\end{frame}
+\begin{frame}
+  \frametitle{Conclusions}
+  \vspace{-\baselineskip}
+  \begin{block}<+->{Good basis for language generator}
+    \begin{itemize}
+    \item Efficient and productive definitions for all operations
+    \item No partiality
+    \item Throttling with length bound straightforward
+    \end{itemize}
+  \end{block}
+  \begin{block}<+->{Extensible to other language generators}
+    \begin{itemize}
+    \item regular grammars / finite automata
+    \item context-free grammars
+    \item conjunctive grammars
+    \item any decidable language representable as a stream of segments 
+    \end{itemize}
+  \end{block}
+\end{frame}
+\begin{frame}
+  \frametitle{Benchmark Expressions}
+  \vspace{-\baselineskip}
+  \begin{block}{Three Example Expressions}
+    \begin{itemize}
+    \item $\Rstar a$: a very small language with $P (w\in L) = 0$.
+    
+      Stresses append as word length increases very quickly.
+    
+      Input: one segment; output: all segments with exactly one element. 
+    \item $\Rstar{(\Rconcat{a}{\Rstar{b}})}$: a large language
+      with $P (w\in L)=0.5$.
+
+      Applies \code{star} to a language where segment $n+1$ consists of the word $ab^n$.
+
+      Measures performance of \code{star} on a non-sparse
+      language and of {concatenation} applied to a finite and an infinite
+      language.
+    \item $\Rconcat{\Rcomplement{(\Rstar{a})}}{b}$: a large language with
+      $P (w\in L) = 0.5$.
+    
+      Exercises the complement operation.
+
+      Tests the concatenation of a very large language
+      $P (w\in \Lang{\Rcomplement{(\Rstar a)}}) = 1$ with a small
+      finite language.
+    \end{itemize}
+  \end{block}
+\end{frame}
+% \begin{frame}
+%   \frametitle{Performance of the Haskell Implementation}
+%   \begin{center}
+%     % \includegraphics[scale=0.2]{../measure/haskell_all.png}
+%     \includegraphics[scale=0.2]{../measure/langs.png}
+%   \end{center}
+% \end{frame}
+\begin{frame}
+  \frametitle{Comparison of the Implementations}
+  \begin{center}
+    \includegraphics[scale=0.2]{../measure/langs.png}
+  \end{center}
+\end{frame}
+\begin{frame}
+  \frametitle{Testing for Regex Engines}
+  \begin{itemize}
+  \item Generate a random regular expression $r$
+  \item Generate $L^+ = \Lang r$ and $L^- = \Lang{\Rcomplement r}$
+  \item Draw $n$ samples each: $w^+ \in L^+$ and $w^- \in L^-$
+    \begin{itemize}
+    \item take the $k$th element, where $k$ follows a power law with mean $n$
+    \item stop sampling with probability $0.1$
+    \end{itemize}
+  \item Check that $E(r, w^+)=true$ and $E(r,w^-)=false$
+  \item Has proven effective in our application
+  \end{itemize}
+\end{frame}
+%\begin{frame}
+%   \frametitle{Application to Grammars}
+%   Let $N$ set of nonterminals, $T$ set of terminals, $V=N\cup T$.
+%   \begin{gather*}
+%     G : N \to P_{fin} (V^*)
+%     \\
+%     \phi^G = \mathsf{lfp}\ \lambda (\phi : N \to P (T^*)).\  \phi^* \circ G
+%   \end{gather*}
+%   \begin{exampleblock}<2->{Observation}
+%     \begin{itemize}
+%     \item Can compute the fixpoint layer by layer given all preceding
+%       layers: $\phi^G_0$, $\phi^G_1$, \dots
+%     \item Only requirement: $\phi^* \circ G$ monotone
+%     \item Hence $G : N \to B_+ (V^*)$ also works!
+%   \end{itemize}
+%   \end{exampleblock}
+% \end{frame}
+\end{document}
+%%% Local Variables: 
+%%% mode: latex
+%%% TeX-master: t
+%%% End: 
