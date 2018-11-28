@@ -1,0 +1,110 @@
+\documentclass{llncs}
+% Encoding and lang
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[english]{babel}
+
+% Graphical packages
+% \usepackage{graphicx}
+\usepackage{xcolor}
+
+
+% Specialized packages
+% \usepackage{syntax} % Grammar definitions
+% \usepackage{verbatim}
+\usepackage{listings} % Code
+% \usepackage{xspace} % Useful for macros
+
+\usepackage[noabbrev,nameinlink,capitalize]{cleveref}
+\usepackage{hyperref}
+
+% Custom macros
+\input{../prelude}
+\bibliographystyle{plain}
+
+\begin{document}
+\title{Generating Tests for Regular Expression Engines}
+
+\author{Gabriel Radanne \and Peter Thiemann}
+\institute{University of Freiburg, Germany \\
+  \email{\{radanne,thiemann\}@informatik.uni-freiburg.de}
+}
+% 
+
+
+% \author{Peter Thiemann}
+% \affiliation{
+%   \institution{University of Freiburg}
+%   \country{Germany}
+% }
+% \email{thiemann@acm.org}
+
+\maketitle
+
+\begin{abstract}
+  \input{../abstract}
+\end{abstract}
+
+\section{Introduction}
+
+Regular languages are everywhere. Due to their apparent simplicity and
+their concise representability in the form of regular expressions,
+regular languages are used for many text processing
+applications, reaching from text editors
+\cite{DBLP:journals/cacm/Thompson68} to extracting data from web
+pages.
+
+Consequently, there are many algorithms and libraries that implement
+parsing for regular expressions. Some of them are based on Thompson's
+translation from regular expressions to nondeterministic finite
+automata and then apply the powerset construction to obtain a
+deterministic automaton. Others are based on Brzozowski's derivatives
+\cite{Brzozowski1964} and
+map a regular expression directly to a deterministic
+automaton. Antimirov's partial derivatives \cite{Antimirov96Partial}
+yield another transformation into a nondeterministic automaton. An
+implementation based on Glushkov automata has been proposed
+\cite{DBLP:conf/icfp/FischerHW10} with decent performance.
+Russ Cox's webpage gives a good overview
+of efficient implementations of regular expression search. It includes
+a discussion of his implementation of Google's RE2 \cite{cox10:_regul_expres_match_wild}.
+
+Some of the algorithms for regular expression matching are rather
+intricate and the natural question arises how to test these algorithms. 
+While there online repositories with reams of real life regular
+expressions \cite{regul_expres_librar}, there are no satisfactory
+generators for test inputs. It is not too hard to come up with
+generators for strings that match a given regular expression, but that
+is only one side of the medal. On the other hand, the algorithm should
+reject strings that do not match the regular expression, so it is
+equally important to come up with strings that do \textbf{not} match.
+
+This work presents generator algorithms for extended regular expressions that
+contain intersection and complement beyond the regular operators. The
+presence of the complement operator enables the algorithms to generate
+strings that certainly do not match a given (extended) regular
+expression.
+
+Our implementations are useful in practice. They are guaranteed to be
+productive and produce total outputs. That is, a user can gauge the
+string size as well as the number of generated strings without risking
+partiality.
+
+Even though the implementations
+are not tuned for efficiency they generate
+languages at a rate between $1.3\cdot10^3$ and $1.4\cdot10^6$ strings per
+second, for Haskell, and up to $3.6\cdot10^6$ strings per second, for
+OCaml. The generation rate depends on the density of the language.
+
+\begin{itemize}
+\item Web app available at \url{https://regex-generate.github.io/regenerate/}
+\item OCaml code available at \url{https://github.com/regex-generate/regenerate}
+\item Haskell code available at \url{https://github.com/peterthiemann/re-generate}
+\end{itemize}
+\bibliography{../biblio}
+\end{document}
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: t
+%%% End:
